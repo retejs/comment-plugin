@@ -49,8 +49,10 @@ export default class Draggable {
     }
 
     up() {
-        this.mouseStart = null;
+        if (this.mouseStart) {
+            this.onDrag();
+        }
 
-        this.onDrag();
+        this.mouseStart = null;
     }
 }

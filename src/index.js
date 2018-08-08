@@ -1,48 +1,5 @@
 import './style.sass';
-import Comment from './comment';
-
-class CommentManager {
-    constructor(editor) {
-        this.editor = editor;
-        this.comments = [];
-
-        editor.on('zoomed', () => {
-            this.comments.map(c => c.blur.call(c));
-        });
-    }
-
-    addComment([x, y], text = '...') {
-        let comment = new Comment(text);
-
-        comment.k = () => this.editor.view.area.transform.k;
-        comment.x = x;
-        comment.y = y;
-        comment.update();
-        this.comments.push(comment);
-        this.editor.view.area.appendChild(comment.el);
-    }
-
-    deleteComment(comment) {
-        this.editor.view.area.removeChild(comment.el);
-        this.comments.splice(this.comments.indexOf(comment), 1);
-    }
-
-    deleteFocusedComment() {
-        const focused = this.comments.find(c => c.focused());
-        
-        if (focused)
-            this.deleteComment(focused)
-    }
-
-    toJSON() {
-        return this.comments.map(c => c.toJSON())
-    }
-
-    fromJSON(list) {
-        this.comments.map(this.deleteComment);
-        list.map(item => this.addComment(item.position, item.text));
-    }
-}
+import CommentManager from './manager';
 
 function install(editor, params) {
     const manager = new CommentManager(editor);
@@ -55,6 +12,13 @@ function install(editor, params) {
         } else if (e.code === 'Delete') {
             manager.deleteFocusedComment();
         }
+    });
+
+    editor.on('nodetranslated', ({ node, prev }) => {
+        const dx = node.position[0] - prev[0];
+        const dy = node.position[1] - prev[1];
+
+        manager.offsetLinkedTo(node, dx, dy);
     });
 
     editor.on('export', data => {
