@@ -5,6 +5,7 @@ import InlineComment from './inline-comment';
 import { nodesBBox } from './utils';
 
 function install(editor, { margin = 30 }) {
+    editor.bind('commentselected');
     editor.bind('commentcreated');
     editor.bind('commentremoved');
 
@@ -47,6 +48,13 @@ function install(editor, { margin = 30 }) {
                 comment.links = contains ? [...links, node.id] : links;
             });
     });
+
+    editor.on('commentselected', () => {
+        const list = [...editor.selected.list];
+
+        editor.selected.clear();
+        list.map(node => node.update ? node.update() : null);
+    })
 
     editor.on('export', data => {
         data.comments = manager.toJSON();

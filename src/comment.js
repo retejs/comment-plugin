@@ -47,10 +47,7 @@ export default class Comment {
     onFocus() {
         this.scale = Math.max(1, 1 / this.k());
         this.update();
-        this.editor.selected.each(node => {
-            this.editor.selected.remove(node);
-            if (node.update) node.update();
-        });
+        this.editor.trigger('commentselected', this)
     }
 
     focused() {
