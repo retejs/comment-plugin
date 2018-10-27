@@ -3,8 +3,7 @@ import { intersectRect } from './utils';
 
 export default class InlineComment extends Comment {
     constructor(text, editor) {
-        super(text);
-        this.editor = editor;
+        super(text, editor);
         
         this.el.className = 'inline-comment';
         this.el.addEventListener('mouseup', this.onDrag.bind(this));

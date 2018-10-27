@@ -3,8 +3,7 @@ import { containsRect } from './utils';
 
 export default class FrameComment extends Comment {
     constructor(text, editor) {
-        super(text);
-        this.editor = editor;
+        super(text, editor);
         
         this.width = 0;
         this.height = 0;

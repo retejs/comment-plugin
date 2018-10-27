@@ -1,7 +1,8 @@
 import Draggable from './draggable';
 
 export default class Comment {
-    constructor(text) {
+    constructor(text, editor) {
+        this.editor = editor;
         this.text = text;
         this.scale = 1;
         this.x = 0;
@@ -45,7 +46,11 @@ export default class Comment {
 
     onFocus() {
         this.scale = Math.max(1, 1 / this.k());
-        this.update()
+        this.update();
+        this.editor.selected.each(node => {
+            this.editor.selected.remove(node);
+            if (node.update) node.update();
+        });
     }
 
     focused() {
