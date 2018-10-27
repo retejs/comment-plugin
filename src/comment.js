@@ -7,6 +7,7 @@ export default class Comment {
         this.x = 0;
         this.y = 0;
         this.dragPosition = [0, 0];
+        this.links = [];
  
         this.el = document.createElement('div');
         this.el.tabIndex = 1;
@@ -14,8 +15,16 @@ export default class Comment {
         this.el.addEventListener('focus', this.onFocus.bind(this));
         this.el.addEventListener('blur', this.onBlur.bind(this));
     
-        new Draggable(this.el, this.onStart.bind(this), this.onTranslate.bind(this));
+        new Draggable(this.el, () => this.onStart(), (dx, dy) => this.onTranslate(dx, dy));
         this.update();
+    }
+
+    linkTo(ids) {
+        this.links = ids || [];
+    }
+
+    linkedTo(node) {
+        return this.links.includes(node.id);
     }
 
     k() {
@@ -73,7 +82,8 @@ export default class Comment {
     toJSON() {
         return {
             text: this.text,
-            position: [ this.x, this.y ]
+            position: [ this.x, this.y ],
+            links: this.links
         }
     }
 }

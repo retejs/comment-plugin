@@ -6,23 +6,14 @@ export default class InlineComment extends Comment {
         super(text);
         this.editor = editor;
         
-        this.link = null;
         this.el.className = 'inline-comment';
         this.el.addEventListener('mouseup', this.onDrag.bind(this));
-    }
-
-    linkTo(id) {
-        this.link = id;
-    }
-
-    linkedTo(node) {
-        return this.link === node.id;
     }
 
     onDrag() {
         const intersection = this.getIntersectNode();
 
-        this.linkTo(intersection ? intersection.node.id : null);
+        this.linkTo(intersection ? [intersection.node.id] : []);
     }
 
     getIntersectNode() {
@@ -46,8 +37,7 @@ export default class InlineComment extends Comment {
     toJSON() {
         return {
             ...super.toJSON(),
-            type: 'inline',
-            link: this.link
+            type: 'inline'
         }
     }
 }

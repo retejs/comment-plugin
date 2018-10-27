@@ -11,17 +11,29 @@ export default class CommentManager {
         });
     }
 
-    addInlineComment(text, [ x, y ], link = null) {
+    addInlineComment(text, [ x, y ], links = []) {
         let comment = new InlineComment(text, this.editor);
 
         comment.k = () => this.editor.view.area.transform.k;
         comment.x = x;
         comment.y = y;
-        comment.linkTo(link);
+        comment.linkTo(links);
 
         this.addComment(comment);
     }
-    
+
+    addFrameComment(text, [ x, y ], links = [], width = 0, height = 0) {
+        let comment = new FrameComment(text, this.editor);
+
+        comment.x = x;
+        comment.y = y;
+        comment.width = width;
+        comment.height = height;
+        comment.linkTo(links);
+        
+        this.addComment(comment);
+    }
+
     addComment(comment) {
         comment.update();
         this.comments.push(comment);
@@ -44,12 +56,6 @@ export default class CommentManager {
             this.deleteComment(focused)
     }
 
-    offsetLinkedTo(node, dx, dy) {
-        this.comments
-            .filter(comment => comment.linkedTo(node))
-            .map(comment => comment.offset(dx, dy));
-    }
-
     toJSON() {
         return this.comments.map(c => c.toJSON())
     }
@@ -57,7 +63,11 @@ export default class CommentManager {
     fromJSON(list) {
         this.comments.map(this.deleteComment);
         list.map(item => {
-            this.addInlineComment(item.text, item.position, item.link);
+            if (item.type === 'frame') {
+                this.addFrameComment(item.text, item.position, item.links, item.width, item.height)
+            } else {
+                this.addInlineComment(item.text, item.position, item.links);
+            }
         });
     }
 }
