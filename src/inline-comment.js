@@ -1,14 +1,14 @@
 import Comment from './comment';
-import Draggable from './draggable';
 import { intersectRect } from './utils';
 
-export default class LinkedComment extends Comment {
+export default class InlineComment extends Comment {
     constructor(text, editor) {
         super(text);
         this.editor = editor;
         
         this.linked = null;
-        new Draggable(this.el, () => {}, () => {}, this.onDrag.bind(this));
+        this.el.className = 'inline-comment';
+        this.el.addEventListener('mouseup', this.onDrag.bind(this));
     }
 
     linkTo(node) {
@@ -20,9 +20,9 @@ export default class LinkedComment extends Comment {
     }
 
     onDrag() {
-        const result = this.getIntersectNode();
+        const intersection = this.getIntersectNode();
 
-        this.linkTo(result ? result.node : null);
+        this.linkTo(intersection ? intersection.node : null);
     }
 
     getIntersectNode() {

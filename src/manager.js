@@ -1,4 +1,4 @@
-import LinkedComment from './linked-comment';
+import InlineComment from './inline-comment';
 
 export default class CommentManager {
     constructor(editor) {
@@ -10,8 +10,8 @@ export default class CommentManager {
         });
     }
 
-    addComment([x, y], text = '...') {
-        let comment = new LinkedComment(text, this.editor);
+    addInlineComment(text, [ x, y ]) {
+        let comment = new InlineComment(text, this.editor);
 
         comment.k = () => this.editor.view.area.transform.k;
         comment.x = x;
@@ -19,11 +19,15 @@ export default class CommentManager {
         comment.update();
         this.comments.push(comment);
         this.editor.view.area.appendChild(comment.el);
+
+        this.editor.trigger('commentcreated', comment);
     }
 
     deleteComment(comment) {
         this.editor.view.area.removeChild(comment.el);
         this.comments.splice(this.comments.indexOf(comment), 1);
+
+        this.editor.trigger('commentremoved', comment);
     }
 
     deleteFocusedComment() {
@@ -45,6 +49,12 @@ export default class CommentManager {
 
     fromJSON(list) {
         this.comments.map(this.deleteComment);
-        list.map(item => this.addComment(item.position, item.text));
+        list.map(item => {
+            if (item.type === 'frame') {
+                // this.addFrameComment()
+            } else {
+                this.addInlineComment(item.text, item.position);
+            }
+        });
     }
 }

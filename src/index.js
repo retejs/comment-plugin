@@ -2,15 +2,21 @@ import './style.sass';
 import CommentManager from './manager';
 
 function install(editor, params) {
+    editor.bind('commentcreated');
+    editor.bind('commentremoved');
+
     const manager = new CommentManager(editor);
 
     window.addEventListener('keydown', function handleKey(e) {
         if (e.code === 'KeyC' && e.shiftKey) {
             let { mouse } = editor.view.area;
 
-            manager.addComment(Object.values(mouse));
+            manager.addInlineComment('...', Object.values(mouse));
         } else if (e.code === 'Delete') {
             manager.deleteFocusedComment();
+        } else if (e.code === 'KeyC' && e.ctrlKey) {
+            // manager.addComment(LinkedComment, mouse);
+
         }
     });
 
