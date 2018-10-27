@@ -9,14 +9,9 @@ function install(editor, params) {
 
     window.addEventListener('keydown', function handleKey(e) {
         if (e.code === 'KeyC' && e.shiftKey) {
-            let { mouse } = editor.view.area;
-
-            manager.addInlineComment('...', Object.values(mouse));
+            manager.addInlineComment('...', Object.values(editor.view.area.mouse));
         } else if (e.code === 'Delete') {
             manager.deleteFocusedComment();
-        } else if (e.code === 'KeyC' && e.ctrlKey) {
-            // manager.addComment(LinkedComment, mouse);
-
         }
     });
 

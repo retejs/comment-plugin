@@ -1,3 +1,4 @@
+import FrameComment from './frame-comment';
 import InlineComment from './inline-comment';
 
 export default class CommentManager {
@@ -10,16 +11,22 @@ export default class CommentManager {
         });
     }
 
-    addInlineComment(text, [ x, y ]) {
+    addInlineComment(text, [ x, y ], link = null) {
         let comment = new InlineComment(text, this.editor);
 
         comment.k = () => this.editor.view.area.transform.k;
         comment.x = x;
         comment.y = y;
+        comment.linkTo(link);
+
+        this.addComment(comment);
+    }
+    
+    addComment(comment) {
         comment.update();
         this.comments.push(comment);
-        this.editor.view.area.appendChild(comment.el);
 
+        this.editor.view.area.appendChild(comment.el);
         this.editor.trigger('commentcreated', comment);
     }
 
@@ -50,11 +57,7 @@ export default class CommentManager {
     fromJSON(list) {
         this.comments.map(this.deleteComment);
         list.map(item => {
-            if (item.type === 'frame') {
-                // this.addFrameComment()
-            } else {
-                this.addInlineComment(item.text, item.position);
-            }
+            this.addInlineComment(item.text, item.position, item.link);
         });
     }
 }
