@@ -1,6 +1,6 @@
 {
   "name": "rete-comment-plugin",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "",
   "main": "build/comment-plugin.min.js",
   "scripts": {
@@ -11,7 +11,7 @@
   "author": "Vitaliy Stoliarov",
   "license": "ISC",
   "devDependencies": {
-    "rete-cli": "^0.1.1",
+    "rete-cli": "^0.2.0",
     "rollup-plugin-sass": "^0.6.1"
   }
 }
