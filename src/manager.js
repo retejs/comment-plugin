@@ -61,7 +61,7 @@ export default class CommentManager {
     }
 
     fromJSON(list) {
-        this.comments.map(this.deleteComment);
+        [...this.comments].map(c => this.deleteComment(c));
         list.map(item => {
             if (item.type === 'frame') {
                 this.addFrameComment(item.text, item.position, item.links, item.width, item.height)
