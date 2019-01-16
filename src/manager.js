@@ -44,7 +44,10 @@ export default class CommentManager {
 
     deleteComment(comment) {
         this.editor.view.area.removeChild(comment.el);
-        this.comments.splice(this.comments.indexOf(comment), 1);
+        
+        this.comments = this.comments.filter(function(c){
+          return c.id !== comment.id;
+        })
 
         this.editor.trigger('commentremoved', comment);
     }
@@ -61,7 +64,9 @@ export default class CommentManager {
     }
 
     fromJSON(list) {
-        this.comments.map(this.deleteComment);
+        this.comments.map(function(c){
+          return this.deleteComment(c);
+        }.bind(this));
         list.map(item => {
             if (item.type === 'frame') {
                 this.addFrameComment(item.text, item.position, item.links, item.width, item.height)
