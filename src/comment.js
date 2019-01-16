@@ -9,6 +9,8 @@ export default class Comment {
         this.y = 0;
         this.dragPosition = [0, 0];
         this.links = [];
+        
+        this.id = Comment.incrementId();
  
         this.el = document.createElement('div');
         this.el.tabIndex = 1;
@@ -18,6 +20,12 @@ export default class Comment {
     
         new Draggable(this.el, () => this.onStart(), (dx, dy) => this.onTranslate(dx, dy));
         this.update();
+    }
+    
+    static incrementId() {
+        if (!this.latestId) this.latestId = 1
+        else this.latestId++
+        return this.latestId
     }
 
     linkTo(ids) {
