@@ -12,15 +12,9 @@ export default class Draggable {
     }
 
     initEvents(el) {
-        el.addEventListener('mousedown', this.down.bind(this));
-        window.addEventListener('mousemove', this.move.bind(this));
-        window.addEventListener('mouseup', this.up.bind(this));
-
-        el.addEventListener('touchstart', this.down.bind(this));
-        window.addEventListener('touchmove', this.move.bind(this), {
-            passive: false
-        });
-        window.addEventListener('touchend', this.up.bind(this));
+        el.addEventListener('pointerdown', this.down.bind(this));
+        window.addEventListener('pointermove', this.move.bind(this));
+        window.addEventListener('pointerup', this.up.bind(this));
     }
 
     getCoords(e) {
