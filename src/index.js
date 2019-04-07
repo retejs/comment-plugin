@@ -11,6 +11,7 @@ function install(editor, { margin = 30 }) {
     editor.bind('commentremoved');
     editor.bind('syncframes');
     editor.bind('addcomment');
+    editor.bind('removecomment');
 
     const manager = new CommentManager(editor);
 
@@ -41,6 +42,20 @@ function install(editor, { margin = 30 }) {
             throw new Error(`type '${type}' not supported`);
         }
     })
+
+    editor.on('removecomment', ({ comment, type }) => {
+        if (comment) {
+            manager.deleteComment(comment)
+        } else if (type === 'inline') {
+            manager.comments
+                .filter(c => c instanceof InlineComment)
+                .map(c => manager.deleteComment(c))
+        } else if (type === 'frame') {
+            manager.comments
+                .filter(c => c instanceof FrameComment)
+                .map(c => manager.deleteComment(c))
+        }
+    });
 
     editor.on('syncframes', () => {
         manager.comments
