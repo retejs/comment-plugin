@@ -13,4 +13,10 @@ import CommentPlugin from 'rete-comment-plugin';
 editor.use(CommentPlugin, { 
     margin: 20 // indent for new frame comments by default 30 (px)
 })
+
+editor.trigger('addcomment', ({ type: 'frame', nodes }))
+editor.trigger('addcomment', ({ type: 'inline', position }))
+
+editor.trigger('removecomment', { comment })
+editor.trigger('removecomment', { type })
 ```
