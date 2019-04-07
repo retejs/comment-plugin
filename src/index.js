@@ -4,10 +4,12 @@ import FrameComment from './frame-comment';
 import InlineComment from './inline-comment';
 import { nodesBBox } from './utils';
 
+// eslint-disable-next-line max-statements
 function install(editor, { margin = 30 }) {
     editor.bind('commentselected');
     editor.bind('commentcreated');
     editor.bind('commentremoved');
+    editor.bind('syncframes');
 
     const manager = new CommentManager(editor);
 
@@ -27,6 +29,22 @@ function install(editor, { margin = 30 }) {
             manager.deleteFocusedComment();
         }
     });
+
+    editor.on('syncframes', () => {
+        manager.comments
+            .filter(comment => comment instanceof FrameComment)
+            .map(comment => {
+                const nodes = comment.links.map(id => editor.nodes.find(n => n.id === id));
+                const { left, top, width, height } = nodesBBox(editor, nodes, margin);
+
+                comment.x = left;
+                comment.y = top;
+                comment.width = width;
+                comment.height = height;
+                
+                comment.update()
+            });
+    })
 
     editor.on('nodetranslated', ({ node, prev }) => {
         const dx = node.position[0] - prev[0];
