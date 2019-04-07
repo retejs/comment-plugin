@@ -30,14 +30,14 @@ function install(editor, { margin = 30 }) {
         }
     });
 
-    editor.on('addcomment', ({ nodes, type, position }) => {
+    editor.on('addcomment', ({ type, text, nodes, position }) => {
         if (type === 'inline') {
-            manager.addInlineComment('...', position);
+            manager.addInlineComment(text, position);
         } else if (type === 'frame') {
             const { left, top, width, height } = nodesBBox(editor, nodes, margin);
             const ids = nodes.map(n => n.id);
         
-            manager.addFrameComment('...', position || [ left, top ], ids, width, height);
+            manager.addFrameComment(text, position || [ left, top ], ids, width, height);
         } else {
             throw new Error(`type '${type}' not supported`);
         }
