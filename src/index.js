@@ -10,25 +10,37 @@ function install(editor, { margin = 30 }) {
     editor.bind('commentcreated');
     editor.bind('commentremoved');
     editor.bind('syncframes');
+    editor.bind('addcomment');
 
     const manager = new CommentManager(editor);
 
     window.addEventListener('keydown', function handleKey(e) {
-
         if (e.code === 'KeyF' && e.shiftKey) {
             const ids = editor.selected.list.map(node => node.id);
             const nodes = ids.map(id => editor.nodes.find(n => n.id === id));
-            const { left, top, width, height } = nodesBBox(editor, nodes, margin);
-
-            manager.addFrameComment('...', [ left, top ], ids, width, height);
+    
+            editor.trigger('addcomment', ({ type: 'frame', nodes }))
         } else if (e.code === 'KeyC' && e.shiftKey) {
             const position = Object.values(editor.view.area.mouse);
 
-            manager.addInlineComment('...', position);
+            editor.trigger('addcomment', ({ type: 'inline', position }))
         } else if (e.code === 'Delete') {
             manager.deleteFocusedComment();
         }
     });
+
+    editor.on('addcomment', ({ nodes, type, position }) => {
+        if (type === 'inline') {
+            manager.addInlineComment('...', position);
+        } else if (type === 'frame') {
+            const { left, top, width, height } = nodesBBox(editor, nodes, margin);
+            const ids = nodes.map(n => n.id);
+        
+            manager.addFrameComment('...', position || [ left, top ], ids, width, height);
+        } else {
+            throw new Error(`type '${type}' not supported`);
+        }
+    })
 
     editor.on('syncframes', () => {
         manager.comments
