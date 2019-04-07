@@ -84,5 +84,6 @@ function install(editor, { margin = 30 }) {
 }
 
 export default {
+    name: 'comment',
     install
 }
