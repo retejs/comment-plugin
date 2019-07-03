@@ -20,3 +20,13 @@ editor.trigger('addcomment', ({ type: 'inline', text, position }))
 editor.trigger('removecomment', { comment })
 editor.trigger('removecomment', { type })
 ```
+
+Edit comment using custom modal (instead of `prompt`)
+```js
+editor.use(CommentPlugin, { disableBuiltInEdit: true });
+
+editor.on('editcomment', async (comment) => {
+    comment.text = await openEditModal(comment.text);
+    comment.update();
+});
+```

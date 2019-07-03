@@ -10,14 +10,18 @@ export default class Comment {
         this.dragPosition = [0, 0];
         this.links = [];
  
+        this.initView();
+        this.update();
+    }
+
+    initView() {
         this.el = document.createElement('div');
         this.el.tabIndex = 1;
-        this.el.addEventListener('contextmenu', this.onClick.bind(this));
+        this.el.addEventListener('contextmenu', this.onContextMenu.bind(this));
         this.el.addEventListener('focus', this.onFocus.bind(this));
         this.el.addEventListener('blur', this.onBlur.bind(this));
     
         new Draggable(this.el, () => this.onStart(), (dx, dy) => this.onTranslate(dx, dy));
-        this.update();
     }
 
     linkTo(ids) {
@@ -32,16 +36,11 @@ export default class Comment {
         return 1;
     }
 
-    onClick(e) {
+    onContextMenu(e) {
         e.preventDefault();
         e.stopPropagation();
 
-        let newText = prompt('Comment', this.text);
-
-        if (newText) {
-            this.text = newText
-            this.update();
-        }
+        this.editor.trigger('editcomment', this);
     }
 
     onFocus() {

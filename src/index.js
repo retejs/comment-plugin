@@ -5,15 +5,23 @@ import InlineComment from './inline-comment';
 import { nodesBBox } from './utils';
 
 // eslint-disable-next-line max-statements
-function install(editor, { margin = 30 }) {
+function install(editor, { margin = 30, disableBuiltInEdit = false }) {
     editor.bind('commentselected');
     editor.bind('commentcreated');
     editor.bind('commentremoved');
     editor.bind('syncframes');
     editor.bind('addcomment');
     editor.bind('removecomment');
+    editor.bind('editcomment');
 
     const manager = new CommentManager(editor);
+
+    if (!disableBuiltInEdit) { 
+        editor.on('editcomment', (comment) => {
+            comment.text = prompt('Edit comment', comment.text)
+            comment.update();
+        });
+    }
 
     window.addEventListener('keydown', function handleKey(e) {
         if (e.code === 'KeyF' && e.shiftKey) {
