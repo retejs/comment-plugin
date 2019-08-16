@@ -116,6 +116,10 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
     editor.on('import', data => {
         manager.fromJSON(data.comments || []);
     });
+
+    if (editor.exist('clear')) { // compatibility with previous versions
+        editor.on('clear', () => manager.deleteComments())
+    }
 }
 
 export default {
