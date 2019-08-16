@@ -23,7 +23,7 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
         });
     }
 
-    window.addEventListener('keydown', function handleKey(e) {
+    function handleKey(e) {
         if (e.code === 'KeyF' && e.shiftKey) {
             const ids = editor.selected.list.map(node => node.id);
             const nodes = ids.map(id => editor.nodes.find(n => n.id === id));
@@ -36,7 +36,10 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
         } else if (e.code === 'Delete') {
             manager.deleteFocusedComment();
         }
-    });
+    }
+
+    window.addEventListener('keydown', handleKey);
+    editor.on('destroy', () => window.removeEventListener('keydown', handleKey));
 
     editor.on('addcomment', ({ type, text, nodes, position }) => {
         if (type === 'inline') {
