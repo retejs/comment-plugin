@@ -1,6 +1,6 @@
 {
   "name": "rete-comment-plugin",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "",
   "main": "build/comment-plugin.common.js",
   "module": "build/comment-plugin.esm.js",
