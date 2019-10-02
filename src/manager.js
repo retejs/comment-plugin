@@ -45,6 +45,7 @@ export default class CommentManager {
     deleteComment(comment) {
         this.editor.view.area.removeChild(comment.el);
         this.comments.splice(this.comments.indexOf(comment), 1);
+        comment.destroy();
 
         this.editor.trigger('commentremoved', comment);
     }
