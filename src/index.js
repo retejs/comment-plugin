@@ -123,6 +123,8 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
     if (editor.exist('clear')) { // compatibility with previous versions
         editor.on('clear', () => manager.deleteComments())
     }
+
+    editor.on('destroy', () => manager.destroy());
 }
 
 export default {

@@ -74,4 +74,8 @@ export default class CommentManager {
             }
         });
     }
+
+    destroy() {
+        this.comments.forEach(comment => comment.destroy());
+    }
 }

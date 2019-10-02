@@ -13,8 +13,16 @@ export default class Draggable {
 
     initEvents(el) {
         el.addEventListener('pointerdown', this.down.bind(this));
-        window.addEventListener('pointermove', this.move.bind(this));
-        window.addEventListener('pointerup', this.up.bind(this));
+
+        const windowListenGuard = (type, listener) => {
+            window.addEventListener(type, listener);
+            return () => window.removeEventListener(type, listener);
+        };
+
+        this.onDestroy = [
+            windowListenGuard('pointermove', this.move.bind(this)),
+            windowListenGuard('pointerup', this.up.bind(this))
+        ];
     }
 
     getCoords(e) {
@@ -48,5 +56,9 @@ export default class Draggable {
         }
 
         this.mouseStart = null;
+    }
+
+    destroy() {
+        this.onDestroy.forEach(cb => cb());
     }
 }
