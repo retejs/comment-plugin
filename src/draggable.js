@@ -33,9 +33,11 @@ export default class Draggable {
 
     down(e) {
         e.stopPropagation();
-        this.mouseStart = this.getCoords(e);
 
-        this.onStart();
+        if (e.which === 1) {
+            this.mouseStart = this.getCoords(e);
+            this.onStart();
+        }
     }
 
     move(e) {
