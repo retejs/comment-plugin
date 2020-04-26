@@ -1,3 +1,5 @@
+import { listenWindow } from './utils';
+
 export default class Draggable {
 
     constructor(el, onStart = () => {}, onTranslate = () => {}, onDrag = () => {}) {
@@ -8,21 +10,19 @@ export default class Draggable {
         this.onTranslate = onTranslate;
         this.onDrag = onDrag;
 
-        this.initEvents(el);
+        this.destroy = this.initEvents(el);
     }
 
     initEvents(el) {
         el.addEventListener('pointerdown', this.down.bind(this));
+        
+        const destroyMove = listenWindow('pointermove', this.move.bind(this))
+        const destroyUp = listenWindow('pointerup', this.up.bind(this));
 
-        const windowListenGuard = (type, listener) => {
-            window.addEventListener(type, listener);
-            return () => window.removeEventListener(type, listener);
-        };
-
-        this.onDestroy = [
-            windowListenGuard('pointermove', this.move.bind(this)),
-            windowListenGuard('pointerup', this.up.bind(this))
-        ];
+        return () => {
+            destroyMove();
+            destroyUp();
+        }
     }
 
     getCoords(e) {
@@ -60,7 +60,6 @@ export default class Draggable {
         this.mouseStart = null;
     }
 
-    destroy() {
-        this.onDestroy.forEach(cb => cb());
-    }
+    // mutable method
+    destroy() { }
 }

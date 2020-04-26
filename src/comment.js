@@ -21,8 +21,7 @@ export default class Comment {
         this.el.addEventListener('focus', this.onFocus.bind(this));
         this.el.addEventListener('blur', this.onBlur.bind(this));
     
-        this.draggable = new Draggable(
-            this.el, () => this.onStart(), (dx, dy) => this.onTranslate(dx, dy));
+        this.draggable = new Draggable(this.el, () => this.onStart(), (dx, dy) => this.onTranslate(dx, dy));
     }
 
     linkTo(ids) {

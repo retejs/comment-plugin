@@ -2,7 +2,7 @@ import './style.sass';
 import CommentManager from './manager';
 import FrameComment from './frame-comment';
 import InlineComment from './inline-comment';
-import { nodesBBox } from './utils';
+import { nodesBBox, listenWindow } from './utils';
 
 // eslint-disable-next-line max-statements
 function install(editor, { margin = 30, disableBuiltInEdit = false }) {
@@ -23,7 +23,7 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
         });
     }
 
-    function handleKey(e) {
+    const destroyKeyListener = listenWindow('keydown', function handleKey(e) {
         if (e.code === 'KeyF' && e.shiftKey) {
             const ids = editor.selected.list.map(node => node.id);
             const nodes = ids.map(id => editor.nodes.find(n => n.id === id));
@@ -36,10 +36,7 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
         } else if (e.code === 'Delete') {
             manager.deleteFocusedComment();
         }
-    }
-
-    window.addEventListener('keydown', handleKey);
-    editor.on('destroy', () => window.removeEventListener('keydown', handleKey));
+    });
 
     editor.on('addcomment', ({ type, text, nodes, position }) => {
         if (type === 'inline') {
@@ -124,7 +121,10 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
         editor.on('clear', () => manager.deleteComments())
     }
 
-    editor.on('destroy', () => manager.destroy());
+    editor.on('destroy', () => {
+        manager.destroy()
+        destroyKeyListener();
+    });
 }
 
 export default {
