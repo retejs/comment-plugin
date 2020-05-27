@@ -2,10 +2,10 @@ Rete comment plugin
 ====
 #### Rete.js plugin
 
-- Add inline comment: `Shift + C`
-- Add frame comment: select nodes, `Shift + F`
-- Delete comment: `Select comment and press Delete`
-- Edit comment: `Call context menu`
+- Add inline comment: `Shift + C` (by default)
+- Add frame comment: select nodes, `Shift + F` (by default)
+- Delete comment: `Select comment and press Delete` (by default)
+- Edit comment: `Call context menu` 
 
 ```js
 import CommentPlugin from 'rete-comment-plugin';
@@ -29,4 +29,13 @@ editor.on('editcomment', async (comment) => {
     comment.text = await openEditModal(comment.text);
     comment.update();
 });
+```
+
+Add custom key bindings
+```js
+editor.use(CommentPlugin, {
+    frameCommentKeys: { code: 'KeyF', shiftKey: true, ctrlKey: false, altKey: false },
+    inlineCommentKeys: { code: 'KeyC', shiftKey: true, ctrlKey: false, altKey: false },
+    deleteCommentKeys: { code: 'Delete', shiftKey: false, ctrlKey: false, altKey: false }
+})
 ```
