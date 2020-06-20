@@ -5,7 +5,13 @@ import InlineComment from './inline-comment';
 import { nodesBBox, listenWindow } from './utils';
 
 // eslint-disable-next-line max-statements
-function install(editor, { margin = 30, disableBuiltInEdit = false }) {
+function install(editor, { 
+    margin = 30,
+    disableBuiltInEdit = false,
+    frameCommentKeys = { code: 'KeyF', shiftKey: true, ctrlKey: false, altKey: false },
+    inlineCommentKeys = { code: 'KeyC', shiftKey: true, ctrlKey: false, altKey: false },
+    deleteCommentKeys = { code: 'Delete', shiftKey: false, ctrlKey: false, altKey: false }
+}) {
     editor.bind('commentselected');
     editor.bind('commentcreated');
     editor.bind('commentremoved');
@@ -24,16 +30,22 @@ function install(editor, { margin = 30, disableBuiltInEdit = false }) {
     }
 
     const destroyKeyListener = listenWindow('keydown', function handleKey(e) {
-        if (e.code === 'KeyF' && e.shiftKey) {
+        const keyCombosMap = [frameCommentKeys, inlineCommentKeys, deleteCommentKeys]
+            .map(function(x) {
+                return e.code === x.code && e.shiftKey === x.shiftKey && 
+                    e.ctrlKey === x.ctrlKey && e.altKey === x.altKey;
+            });
+
+        if (keyCombosMap[0]) {
             const ids = editor.selected.list.map(node => node.id);
             const nodes = ids.map(id => editor.nodes.find(n => n.id === id));
     
             editor.trigger('addcomment', ({ type: 'frame', nodes }))
-        } else if (e.code === 'KeyC' && e.shiftKey) {
+        } else if (keyCombosMap[1]) {
             const position = Object.values(editor.view.area.mouse);
 
             editor.trigger('addcomment', ({ type: 'inline', position }))
-        } else if (e.code === 'Delete') {
+        } else if (keyCombosMap[2]) {
             manager.deleteFocusedComment();
         }
     });
