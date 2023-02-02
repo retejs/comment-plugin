@@ -1,13 +1,15 @@
 {
   "name": "rete-comment-plugin",
-  "version": "0.7.0-rc.1",
+  "version": "2.0.0-beta.1",
   "description": "",
   "main": "build/comment-plugin.common.js",
   "module": "build/comment-plugin.esm.js",
+  "types": "types",
   "scripts": {
-    "build": "rete --build rete.config.js",
-    "build:dev": "rete --build rete.config.js --watch",
-    "prepublishOnly": "npm run build"
+    "build": "rete build -c rete.config.ts",
+    "build:dev": "rete build -c rete.config.ts --watch",
+    "prepublishOnly": "npm run build",
+    "lint": "rete lint"
   },
   "author": "Vitaliy Stoliarov",
   "license": "MIT",
@@ -15,8 +17,15 @@
     "type": "git",
     "url": "https://github.com/retejs/comment-plugin.git"
   },
+  "peerDependencies": {
+    "rete": "file:../rete/rete-2.0.0-beta.1.tgz",
+    "rete-area-plugin": "file:../area-plugin/rete-area-plugin-0.2.1.tgz"
+  },
   "devDependencies": {
-    "rete-cli": "^0.5.0",
-    "rollup-plugin-sass": "^0.6.1"
+    "rete-cli": "1.0.0-beta.16",
+    "rete": "file:../rete/rete-2.0.0-beta.1.tgz",
+    "rete-area-plugin": "file:../area-plugin/rete-area-plugin-0.2.1.tgz",
+    "rollup-plugin-sass": "1.12.17",
+    "typescript": "4.8.4"
   }
 }
