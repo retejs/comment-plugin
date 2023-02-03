@@ -8,9 +8,18 @@ export class InlineComment extends Comment {
     constructor(
         text: string,
         private area: AreaPlugin<ExpectedSchemes, any>,
-        contextMenu?: (comment: InlineComment) => void
+        events?: {
+            contextMenu?: (comment: InlineComment) => void
+            pick?: (comment: InlineComment) => void,
+            translate?: (comment: InlineComment, dx: number, dy: number) => void
+        }
     ) {
-        super(text, () => area.area.transform.k, () => contextMenu && contextMenu(this), () => this.link())
+        super(text, () => area.area.transform.k, {
+            contextMenu: () => events?.contextMenu && events.contextMenu(this),
+            pick: () => events?.pick && events.pick(this),
+            translate: (dx, dy) => events?.translate && events.translate(this, dx, dy),
+            drag: () => this.link()
+        })
 
         this.element.className = 'inline-comment'
     }

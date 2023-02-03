@@ -8,14 +8,17 @@ export class Comment {
     y = 0
     links: string[] = []
     element!: HTMLElement
-    prevPosition?: { x: number, y: number }
+    prevPosition: null | { x: number, y: number } = null
 
     constructor(
         public text: string,
         private getZoom: () => number,
-        private contextMenu?: null | (() => void),
-        private translate?: null | ((dx: number, dy: number) => void),
-        private drag?: null | (() => void)
+        private events?: {
+            contextMenu?: null | (() => void),
+            pick?: null | (() => void),
+            translate?: null | ((dx: number, dy: number) => void),
+            drag?: null | (() => void)
+        }
     ) {
         this.id = getUID()
         this.element = document.createElement('div')
@@ -25,9 +28,15 @@ export class Comment {
             this.element,
             () => ({ x: this.x, y: this.y }),
             () => this.getZoom(),
-            () => this.prevPosition = { x: this.x, y: this.y },
+            () => {
+                this.prevPosition = { x: this.x, y: this.y }
+                this.events?.pick && this.events?.pick()
+            },
             (x, y) => this.onTranslate(x, y),
-            () => this.drag && this.drag()
+            () => {
+                this.prevPosition = null
+                this.events?.drag && this.events?.drag()
+            }
         )
         this.update()
     }
@@ -44,19 +53,35 @@ export class Comment {
         e.preventDefault()
         e.stopPropagation()
 
-        this.contextMenu && this.contextMenu()
+        this.events?.contextMenu && this.events?.contextMenu()
     }
 
     onTranslate(x: number, y: number) {
-        this.x = x
-        this.y = y
+        if (!this.prevPosition) return
 
-        if (this.prevPosition && this.translate) {
-            this.translate(x - this.prevPosition.x, y - this.prevPosition.y)
-        }
+        const dx = x - this.prevPosition.x
+        const dy = y - this.prevPosition.y
+
+        this.translate(dx, dy)
         this.prevPosition = { x, y }
+    }
 
+    translate(dx: number, dy: number) {
+        this.x += dx
+        this.y += dy
+
+        if (this.events?.translate) {
+            this.events?.translate(dx, dy)
+        }
         this.update()
+    }
+
+    select() {
+        this.element.classList.add('selected')
+    }
+
+    unselect() {
+        this.element.classList.remove('selected')
     }
 
     update() {

@@ -14,19 +14,20 @@ export class FrameComment extends Comment {
         text: string,
         private area: AreaPlugin<ExpectedSchemes, never>,
         private editor: NodeEditor<ExpectedSchemes>,
-        contextMenu?: (comment: FrameComment) => void
+        events?: {
+            contextMenu?: (comment: FrameComment) => void,
+            pick?: (comment: FrameComment) => void,
+            translate?: (comment: FrameComment, dx: number, dy: number) => void,
+        }
     ) {
-        super(text, () => area.area.transform.k, () => contextMenu && contextMenu(this), (dx, dy) => this.translated(dx, dy))
+        super(text, () => area.area.transform.k, {
+            contextMenu: () => events?.contextMenu && events.contextMenu(this),
+            pick: () => events?.pick && events.pick(this),
+            translate: (dx, dy) => events?.translate && events.translate(this, dx, dy),
+            drag: () => 1
+        })
 
         this.element.className = 'frame-comment'
-    }
-
-    private translated(dx: number, dy: number) {
-        this.links
-            .map(id => this.area.nodeViews.get(id))
-            .forEach(view => {
-                view?.translate(view.position.x + dx, view.position.y + dy)
-            })
     }
 
     private getRect(): Rect {
