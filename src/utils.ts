@@ -1,9 +1,6 @@
 import { BaseSchemes, NodeId } from 'rete'
 import { AreaPlugin } from 'rete-area-plugin'
 
-const min = (arr: number[]) => arr.length === 0 ? 0 : Math.min(...arr)
-const max = (arr: number[]) => arr.length === 0 ? 0 : Math.max(...arr)
-
 export type Rect = { left: number, top: number, right: number, bottom: number }
 
 export function intersectRect(r1: Rect, r2: Rect) {
@@ -25,6 +22,9 @@ export function containsRect(r1: Rect, r2: Rect) {
 }
 
 export function nodesBBox<S extends BaseSchemes>(area: AreaPlugin<S, never>, ids: NodeId[], margin: number | Rect, k: number) {
+    const marginRect: Rect = typeof margin === 'number'
+        ? { left: margin, top: margin, right: margin, bottom: margin }
+        : margin
     const rects = ids.map(id => {
         const view = area.nodeViews.get(id)
 
@@ -34,13 +34,13 @@ export function nodesBBox<S extends BaseSchemes>(area: AreaPlugin<S, never>, ids
 
         return { id, position: view.position, width: width / k, height: height / k }
     }).filter((item): item is Exclude<typeof item, null> => Boolean(item))
-    const marginRect: Rect = typeof margin === 'number'
-        ? { left: margin, top: margin, right: margin, bottom: margin }
-        : margin
-    const left = min(rects.map(p => p.position.x)) - marginRect.left
-    const top = min(rects.map(p => p.position.y)) - marginRect.top
-    const right = max(rects.map(({ position, width }) => position.x + width)) + marginRect.right
-    const bottom = max(rects.map(({ position, height }) => position.y + height)) + marginRect.bottom
+
+    if (rects.length === 0) return null
+
+    const left = Math.min(...rects.map(p => p.position.x)) - marginRect.left
+    const top = Math.min(...rects.map(p => p.position.y)) - marginRect.top
+    const right = Math.max(...rects.map(rect => rect.position.x + rect.width)) + marginRect.right
+    const bottom = Math.max(...rects.map(rect => rect.position.y + rect.height)) + marginRect.bottom
 
     return {
         left,

@@ -6,8 +6,8 @@ import { ExpectedSchemes } from './types'
 import { containsRect, intersectRect, nodesBBox, Rect } from './utils'
 
 export class FrameComment extends Comment {
-    width = 0
-    height = 0
+    width = 100
+    height = 100
     links: string[] = []
 
     constructor(
@@ -67,12 +67,17 @@ export class FrameComment extends Comment {
     public linkTo(ids: string[]): void {
         super.linkTo(ids)
         const { k } = this.area.area.transform
-        const { left, top, width, height } = nodesBBox(this.area, ids, { top: 50, left: 20, right: 20, bottom: 20 }, k)
+        const bbox = nodesBBox(this.area, ids, { top: 50, left: 20, right: 20, bottom: 20 }, k)
 
-        this.x = left
-        this.y = top
-        this.width = width
-        this.height = height
+        if (bbox) {
+            this.x = bbox.left
+            this.y = bbox.top
+            this.width = bbox.width
+            this.height = bbox.height
+        } else {
+            this.width = 100
+            this.height = 100
+        }
         this.update()
     }
 
