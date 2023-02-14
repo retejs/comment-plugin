@@ -5,44 +5,44 @@ import { CommentPlugin, ExpectedSchemes } from '..'
 type Selector = ReturnType<typeof AreaExtensions.selector>
 
 export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S, K>, selector: Selector, accumulating: { active(): boolean }) {
-    // eslint-disable-next-line max-statements
-    plugin.addPipe(context => {
-        if (!('type' in context)) return context
+  // eslint-disable-next-line max-statements
+  plugin.addPipe(context => {
+    if (!('type' in context)) return context
 
-        if (context.type === 'commentlinktranslate') {
-            const { link } = context.data
+    if (context.type === 'commentlinktranslate') {
+      const { link } = context.data
 
-            if (selector.isSelected({ id: link, label: 'node' })) return
+      if (selector.isSelected({ id: link, label: 'node' })) return
+    }
+    if (context.type === 'commentselected') {
+      const comment = context.data
+      const { id } = comment
+
+      if (!accumulating.active()) selector.unselectAll()
+      selector.add({
+        id,
+        label: 'comment',
+        translate(dx, dy) {
+          plugin.translate(id, dx, dy)
+        },
+        unselect() {
+          plugin.unselect(id)
         }
-        if (context.type === 'commentselected') {
-            const comment = context.data
-            const { id } = comment
+      }, accumulating.active())
+      comment.select()
+      selector.pick({ id, label: 'comment' })
+    }
+    if (context.type === 'commentunselected') {
+      const { id } = context.data
 
-            if (!accumulating.active()) selector.unselectAll()
-            selector.add({
-                id,
-                label: 'comment',
-                translate(dx, dy) {
-                    plugin.translate(id, dx, dy)
-                },
-                unselect() {
-                    plugin.unselect(id)
-                }
-            }, accumulating.active())
-            comment.select()
-            selector.pick({ id, label: 'comment' })
-        }
-        if (context.type === 'commentunselected') {
-            const { id } = context.data
+      selector.remove({ id, label: 'comment' })
+    }
+    if (context.type === 'commenttranslated') {
+      const { id, dx, dy } = context.data
 
-            selector.remove({ id, label: 'comment' })
-        }
-        if (context.type === 'commenttranslated') {
-            const { id, dx, dy } = context.data
+      if (selector.isPicked({ id, label: 'comment' })) selector.translate(dx, dy)
+    }
 
-            if (selector.isPicked({ id, label: 'comment' })) selector.translate(dx, dy)
-        }
-
-        return context
-    })
+    return context
+  })
 }

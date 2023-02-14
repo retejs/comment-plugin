@@ -25,167 +25,166 @@ type Props = {
 }
 
 export class CommentPlugin<Schemes extends ExpectedSchemes, K> extends Scope<Produces, Area2DInherited<Schemes, K>> {
-    public comments = new Map<Comment['id'], Comment>()
-    private area!: AreaPlugin<Schemes>
-    private editor!: NodeEditor<Schemes>
+  public comments = new Map<Comment['id'], Comment>()
+  private area!: AreaPlugin<Schemes>
+  private editor!: NodeEditor<Schemes>
 
+  constructor(private props?: Props) {
+    super('comment')
+  }
 
-    constructor(private props?: Props) {
-        super('comment')
-    }
+  setParent(scope: Scope<Area2D<Schemes> | K, [Root<Schemes>]>): void {
+    super.setParent(scope)
 
-    setParent(scope: Scope<Area2D<Schemes> | K, [Root<Schemes>]>): void {
-        super.setParent(scope)
+    this.area = this.parentScope<AreaPlugin<Schemes>>(AreaPlugin)
+    this.editor = this.area.parentScope<NodeEditor<Schemes>>(NodeEditor)
 
-        this.area = this.parentScope<AreaPlugin<Schemes>>(AreaPlugin)
-        this.editor = this.area.parentScope<NodeEditor<Schemes>>(NodeEditor)
+    // eslint-disable-next-line max-statements
+    this.addPipe(context => {
+      if (!('type' in context)) return context
 
-        // eslint-disable-next-line max-statements
-        this.addPipe(context => {
-            if (!('type' in context)) return context
+      if (context.type === 'nodetranslated') {
+        const { id, position, previous } = context.data
+        const dx = position.x - previous.x
+        const dy = position.y - previous.y
+        const comments = Array.from(this.comments.values())
 
-            if (context.type === 'nodetranslated') {
-                const { id, position, previous } = context.data
-                const dx = position.x - previous.x
-                const dy = position.y - previous.y
-                const comments = Array.from(this.comments.values())
+        comments
+          .filter((comment): comment is InlineComment => comment instanceof InlineComment)
+          .filter(comment => comment.linkedTo(id))
+          .map(comment => comment.offset(dx, dy))
+      }
+      if (context.type === 'commenttranslated') {
+        const { id, dx, dy } = context.data
+        const comment = this.comments.get(id)
 
-                comments
-                    .filter((comment): comment is InlineComment => comment instanceof InlineComment)
-                    .filter(comment => comment.linkedTo(id))
-                    .map(comment => comment.offset(dx, dy))
-            }
-            if (context.type === 'commenttranslated') {
-                const { id, dx, dy } = context.data
-                const comment = this.comments.get(id)
+        if (!(comment instanceof FrameComment && comment)) return context
 
-                if (!(comment instanceof FrameComment && comment)) return context
+        comment.links
+          .map(linkId => ({ linkId, view: this.area.nodeViews.get(linkId) }))
+          .forEach(async ({ linkId, view }) => {
+            if (!view) return
+            // prevent an infinite loop if a node is selected and translated along with the selected comment
+            if (!await this.emit({ type: 'commentlinktranslate', data: { id, link: linkId } })) return
 
-                comment.links
-                    .map(linkId => ({ linkId, view: this.area.nodeViews.get(linkId) }))
-                    .forEach(async ({ linkId, view }) => {
-                        if (!view) return
-                        // prevent an infinite loop if a node is selected and translated along with the selected comment
-                        if (!await this.emit({ type: 'commentlinktranslate', data: { id, link: linkId } })) return
+            view.translate(view.position.x + dx, view.position.y + dy)
+          })
+      }
+      if (context.type === 'nodedragged') {
+        const { id } = context.data
+        const comments = Array.from(this.comments.values())
 
-                        view.translate(view.position.x + dx, view.position.y + dy)
-                    })
-            }
-            if (context.type === 'nodedragged') {
-                const { id } = context.data
-                const comments = Array.from(this.comments.values())
+        comments
+          .filter((comment): comment is FrameComment => comment instanceof FrameComment)
+          .filter(comment => {
+            const contains = comment.intersects(id)
+            const links = comment.links.filter(nodeId => nodeId !== id)
 
-                comments
-                    .filter((comment): comment is FrameComment => comment instanceof FrameComment)
-                    .filter(comment => {
-                        const contains = comment.intersects(id)
-                        const links = comment.links.filter(nodeId => nodeId !== id)
+            comment.linkTo(contains ? [...links, id] : links)
+          })
+      }
+      if (context.type === 'noderemoved') {
+        const { id } = context.data
 
-                        comment.linkTo(contains ? [...links, id] : links)
-                    })
-            }
-            if (context.type === 'noderemoved') {
-                const { id } = context.data
-
-                Array.from(this.comments.values()).forEach(comment => {
-                    if (comment instanceof InlineComment && comment.linkedTo(id)) {
-                        comment.linkTo([])
-                    }
-                    if (comment instanceof FrameComment && comment.linkedTo(id)) {
-                        comment.linkTo(comment.links.filter(linkId => linkId !== id))
-                    }
-                })
-            }
-            return context
+        Array.from(this.comments.values()).forEach(comment => {
+          if (comment instanceof InlineComment && comment.linkedTo(id)) {
+            comment.linkTo([])
+          }
+          if (comment instanceof FrameComment && comment.linkedTo(id)) {
+            comment.linkTo(comment.links.filter(linkId => linkId !== id))
+          }
         })
+      }
+      return context
+    })
+  }
+
+  async editComment(id: Comment['id']) {
+    const comment = this.comments.get(id)
+
+    if (!comment) throw new Error('comment not found')
+    const newText = this.props?.edit ? await this.props.edit(comment) : prompt('Edit comment', comment.text)
+
+    if (newText !== null) {
+      comment.text = newText
+      comment.update()
     }
+  }
 
-    async editComment(id: Comment['id']) {
-        const comment = this.comments.get(id)
+  public addInline(text: string, [x, y]: [number, number], link?: string) {
+    const comment = new InlineComment(text, this.area, {
+      contextMenu: ({ id }) => this.editComment(id),
+      pick: (data) => this.emit({ type: 'commentselected', data }),
+      translate: ({ id }, dx, dy) => this.emit({ type: 'commenttranslated', data: { id, dx, dy } })
+    })
 
-        if (!comment) throw new Error('comment not found')
-        const newText = this.props?.edit ? await this.props.edit(comment) : prompt('Edit comment', comment.text)
+    comment.x = x
+    comment.y = y
+    if (link) comment.linkTo([link])
 
-        if (newText !== null) {
-            comment.text = newText
-            comment.update()
-        }
-    }
+    this.add(comment)
+  }
 
-    public addInline(text: string, [x, y]: [number, number], link?: string) {
-        const comment = new InlineComment(text, this.area, {
-            contextMenu: ({ id }) => this.editComment(id),
-            pick: (data) => this.emit({ type: 'commentselected', data }),
-            translate: ({ id }, dx, dy) => this.emit({ type: 'commenttranslated', data: { id, dx, dy } })
-        })
+  public addFrame(text: string, links: string[] = []) {
+    const comment = new FrameComment(text, this.area, this.editor, {
+      contextMenu: ({ id }) => this.editComment(id),
+      pick: (data) => this.emit({ type: 'commentselected', data }),
+      translate: ({ id }, dx, dy) => this.emit({ type: 'commenttranslated', data: { id, dx, dy } })
+    })
 
-        comment.x = x
-        comment.y = y
-        if (link) comment.linkTo([link])
+    comment.linkTo(links)
 
-        this.add(comment)
-    }
+    this.add(comment)
+  }
 
-    public addFrame(text: string, links: string[] = []) {
-        const comment = new FrameComment(text, this.area, this.editor, {
-            contextMenu: ({ id }) => this.editComment(id),
-            pick: (data) => this.emit({ type: 'commentselected', data }),
-            translate: ({ id }, dx, dy) => this.emit({ type: 'commenttranslated', data: { id, dx, dy } })
-        })
+  public add(comment: Comment) {
+    comment.update()
+    this.comments.set(comment.id, comment)
 
-        comment.linkTo(links)
+    this.area.area.appendChild(comment.element)
+    this.emit({ type: 'commentcreated', data: comment })
+  }
 
-        this.add(comment)
-    }
+  public delete(id: Comment['id']) {
+    const comment = this.comments.get(id)
 
-    public add(comment: Comment) {
-        comment.update()
-        this.comments.set(comment.id, comment)
+    if (!comment) return
 
-        this.area.area.appendChild(comment.element)
-        this.emit({ type: 'commentcreated', data: comment })
-    }
+    this.unselect(id)
+    this.area.area.removeChild(comment.element)
+    this.comments.delete(comment.id)
+    comment.destroy()
 
-    public delete(id: Comment['id']) {
-        const comment = this.comments.get(id)
+    this.emit({ type: 'commentremoved', data: comment })
+  }
 
-        if (!comment) return
+  public translate(id: Comment['id'], dx: number, dy: number) {
+    const comment = this.comments.get(id)
 
-        this.unselect(id)
-        this.area.area.removeChild(comment.element)
-        this.comments.delete(comment.id)
-        comment.destroy()
+    if (!comment) return
 
-        this.emit({ type: 'commentremoved', data: comment })
-    }
+    comment.translate(dx, dy)
+  }
 
-    public translate(id: Comment['id'], dx: number, dy: number) {
-        const comment = this.comments.get(id)
+  public select(id: Comment['id']) {
+    const comment = this.comments.get(id)
 
-        if (!comment) return
+    if (!comment) return
 
-        comment.translate(dx, dy)
-    }
+    comment.select()
+    this.emit({ type: 'commentselected', data: comment })
+  }
 
-    public select(id: Comment['id']) {
-        const comment = this.comments.get(id)
+  public unselect(id: Comment['id']) {
+    const comment = this.comments.get(id)
 
-        if (!comment) return
+    if (!comment) return
 
-        comment.select()
-        this.emit({ type: 'commentselected', data: comment })
-    }
+    comment.unselect()
+    this.emit({ type: 'commentunselected', data: comment })
+  }
 
-    public unselect(id: Comment['id']) {
-        const comment = this.comments.get(id)
-
-        if (!comment) return
-
-        comment.unselect()
-        this.emit({ type: 'commentunselected', data: comment })
-    }
-
-    public clear() {
-        Array.from(this.comments.keys()).map(id => this.delete(id))
-    }
+  public clear() {
+    Array.from(this.comments.keys()).map(id => this.delete(id))
+  }
 }
