@@ -26,16 +26,20 @@ export class Comment {
 
     this.dragHandler = new Drag(
       this.element,
-      () => ({ x: this.x, y: this.y }),
-      () => this.getZoom(),
-      () => {
-        this.prevPosition = { x: this.x, y: this.y }
-        this.events?.pick && this.events?.pick()
+      {
+        getCurrentPosition: () => ({ x: this.x, y: this.y }),
+        getZoom: () => this.getZoom()
       },
-      (x, y) => this.onTranslate(x, y),
-      () => {
-        this.prevPosition = null
-        this.events?.drag && this.events?.drag()
+      {
+        start: () => {
+          this.prevPosition = { x: this.x, y: this.y }
+          this.events?.pick && this.events?.pick()
+        },
+        translate: (x, y) => this.onTranslate(x, y),
+        drag: () => {
+          this.prevPosition = null
+          this.events?.drag && this.events?.drag()
+        }
       }
     )
     this.update()
