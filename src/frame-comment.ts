@@ -67,8 +67,11 @@ export class FrameComment extends Comment {
 
   public linkTo(ids: string[]): void {
     super.linkTo(ids)
-    const { k } = this.area.area.transform
-    const bbox = nodesBBox(this.area, ids, { top: 50, left: 20, right: 20, bottom: 20 }, k)
+    this.resize()
+  }
+
+  public resize() {
+    const bbox = nodesBBox(this.editor, this.area, this.links, { top: 50, left: 20, right: 20, bottom: 20 })
 
     if (bbox) {
       this.x = bbox.left

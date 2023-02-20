@@ -1,5 +1,7 @@
-import { BaseSchemes, NodeId } from 'rete'
+import { NodeEditor, NodeId } from 'rete'
 import { AreaPlugin } from 'rete-area-plugin'
+
+import { ExpectedSchemes } from './types'
 
 export type Rect = { left: number, top: number, right: number, bottom: number }
 
@@ -21,7 +23,7 @@ export function containsRect(r1: Rect, r2: Rect) {
   )
 }
 
-export function nodesBBox<S extends BaseSchemes>(area: AreaPlugin<S, never>, ids: NodeId[], margin: number | Rect, k: number) {
+export function nodesBBox<S extends ExpectedSchemes>(editor: NodeEditor<S>, area: AreaPlugin<S, never>, ids: NodeId[], margin: number | Rect) {
   const marginRect: Rect = typeof margin === 'number'
     ? { left: margin, top: margin, right: margin, bottom: margin }
     : margin
@@ -30,9 +32,9 @@ export function nodesBBox<S extends BaseSchemes>(area: AreaPlugin<S, never>, ids
 
     if (!view) return null
 
-    const { width, height } = view.element.getBoundingClientRect()
+    const { width, height } = editor.getNode(id)
 
-    return { id, position: view.position, width: width / k, height: height / k }
+    return { id, position: view.position, width: width, height: height }
   }).filter((item): item is Exclude<typeof item, null> => Boolean(item))
 
   if (rects.length === 0) return null

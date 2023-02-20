@@ -39,10 +39,15 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K> extends Scope<Pro
     this.area = this.parentScope<AreaPlugin<Schemes>>(AreaPlugin)
     this.editor = this.area.parentScope<NodeEditor<Schemes>>(NodeEditor)
 
+    let picked: string[] = []
+
     // eslint-disable-next-line max-statements
     this.addPipe(context => {
       if (!('type' in context)) return context
 
+      if (context.type === 'nodepicked') {
+        picked.push(context.data.id)
+      }
       if (context.type === 'nodetranslated') {
         const { id, position, previous } = context.data
         const dx = position.x - previous.x
@@ -50,9 +55,11 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K> extends Scope<Pro
         const comments = Array.from(this.comments.values())
 
         comments
-          .filter((comment): comment is InlineComment => comment instanceof InlineComment)
           .filter(comment => comment.linkedTo(id))
-          .map(comment => comment.offset(dx, dy))
+          .map(comment => {
+            if (comment instanceof InlineComment) comment.offset(dx, dy)
+            if (comment instanceof FrameComment && !picked.includes(id)) comment.resize()
+          })
       }
       if (context.type === 'commenttranslated') {
         const { id, dx, dy } = context.data
@@ -82,6 +89,8 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K> extends Scope<Pro
 
             comment.linkTo(contains ? [...links, id] : links)
           })
+
+        picked = picked.filter(p => p !== id)
       }
       if (context.type === 'noderemoved') {
         const { id } = context.data
