@@ -24,7 +24,9 @@ export class Comment {
     this.element = document.createElement('div')
     this.element.addEventListener('contextmenu', this.onContextMenu.bind(this))
 
-    this.dragHandler = new Drag(
+    this.dragHandler = new Drag()
+
+    this.dragHandler.initialize(
       this.element,
       {
         getCurrentPosition: () => ({ x: this.x, y: this.y }),
