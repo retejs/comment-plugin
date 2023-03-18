@@ -150,7 +150,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K> extends Scope<Pro
     comment.update()
     this.comments.set(comment.id, comment)
 
-    this.area.area.appendChild(comment.element)
+    this.area.area.content.add(comment.element)
     this.emit({ type: 'commentcreated', data: comment })
   }
 
@@ -160,7 +160,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K> extends Scope<Pro
     if (!comment) return
 
     this.unselect(id)
-    this.area.area.removeChild(comment.element)
+    this.area.area.content.remove(comment.element)
     this.comments.delete(comment.id)
     comment.destroy()
 
