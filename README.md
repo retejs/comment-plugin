@@ -1,41 +1,24 @@
-Rete comment plugin
+Rete.js Comment plugin
 ====
-#### Rete.js plugin
+[![Made in Ukraine](https://img.shields.io/badge/made_in-ukraine-ffd700.svg?labelColor=0057b7)](https://stand-with-ukraine.pp.ua)
+[![Discord](https://img.shields.io/discord/1081223198055604244?color=%237289da&label=Discord)](https://discord.gg/cxSFkPZdsV)
 
-- Add inline comment: `Shift + C` (by default)
-- Add frame comment: select nodes, `Shift + F` (by default)
-- Delete comment: `Select comment and press Delete` (by default)
-- Edit comment: `Call context menu` 
+**Rete.js plugin**
 
-```js
-import CommentPlugin from 'rete-comment-plugin';
+## Key features
 
-editor.use(CommentPlugin, { 
-    margin: 20 // indent for new frame comments by default 30 (px)
-})
+- **Inline and frame comments**: adding comments to the area
+- **Extensions**:
+  - **Selectable**: enables the selection of comments
 
-editor.trigger('addcomment', ({ type: 'frame', text, nodes }))
-editor.trigger('addcomment', ({ type: 'inline', text, position }))
+## Getting Started
 
-editor.trigger('removecomment', { comment })
-editor.trigger('removecomment', { type })
-```
+Please refer to the [guide](https://retejs.org/docs/guides/comments) and [example](https://retejs.org/examples/comments) using this plugin
 
-Edit comment using custom modal (instead of `prompt`)
-```js
-editor.use(CommentPlugin, { disableBuiltInEdit: true });
+## Contribution
 
-editor.on('editcomment', async (comment) => {
-    comment.text = await openEditModal(comment.text);
-    comment.update();
-});
-```
+Please refer to the [Contribution](https://retejs.org/docs/contribution) guide
 
-Add custom key bindings
-```js
-editor.use(CommentPlugin, {
-    frameCommentKeys: { code: 'KeyF', shiftKey: true, ctrlKey: false, altKey: false },
-    inlineCommentKeys: { code: 'KeyC', shiftKey: true, ctrlKey: false, altKey: false },
-    deleteCommentKeys: { code: 'Delete', shiftKey: false, ctrlKey: false, altKey: false }
-})
-```
+## License
+
+[MIT](https://github.com/retejs/comment-plugin/blob/master/LICENSE)
