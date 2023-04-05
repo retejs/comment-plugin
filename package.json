@@ -1,6 +1,6 @@
 {
   "name": "rete-comment-plugin",
-  "version": "2.0.0-beta.3",
+  "version": "2.0.0-beta.5",
   "description": "",
   "scripts": {
     "build": "rete build -c rete.config.ts",
@@ -28,8 +28,11 @@
   "devDependencies": {
     "rete": "^2.0.0-beta.1",
     "rete-area-plugin": "^2.0.0-beta.1",
-    "rete-cli": "^1.0.0-beta.26",
+    "rete-cli": "^1.0.0-beta.29",
     "rollup-plugin-sass": "1.12.17",
     "typescript": "4.8.4"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.21.0"
   }
 }
