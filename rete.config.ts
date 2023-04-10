@@ -4,10 +4,10 @@ import sass from 'rollup-plugin-sass'
 
 export default <ReteOptions>{
   input: 'src/index.ts',
-  name: 'CommentPlugin',
+  name: 'ReteCommentPlugin',
   globals: {
     'rete': 'Rete',
-    'rete-area-plugin': 'AreaPlugin'
+    'rete-area-plugin': 'ReteAreaPlugin'
   },
   plugins: [
     sass({
