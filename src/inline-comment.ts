@@ -1,27 +1,31 @@
-import { AreaPlugin } from 'rete-area-plugin'
+import { NodeId } from 'rete'
+import { BaseAreaPlugin } from 'rete-area-plugin'
 
 import { Comment } from './comment'
 import { ExpectedSchemes } from './types'
 import { intersectRect } from './utils'
 
 export class InlineComment extends Comment {
+  width = 80
+  height = 54
+
   constructor(
     text: string,
-        private area: AreaPlugin<ExpectedSchemes, any>,
-        events?: {
-            contextMenu?: (comment: InlineComment) => void
-            pick?: (comment: InlineComment) => void,
-            translate?: (comment: InlineComment, dx: number, dy: number) => void
-        }
+    area: BaseAreaPlugin<ExpectedSchemes, any>,
+    events?: {
+      contextMenu?: (comment: InlineComment) => void
+      pick?: (comment: InlineComment) => void,
+      translate?: (comment: InlineComment, dx: number, dy: number, sources?: NodeId[]) => void
+    }
   ) {
-    super(text, () => area.area.transform.k, {
+    super(text, area, {
       contextMenu: () => events?.contextMenu && events.contextMenu(this),
       pick: () => events?.pick && events.pick(this),
-      translate: (dx, dy) => events?.translate && events.translate(this, dx, dy),
+      translate: (dx, dy, sources) => events?.translate && events.translate(this, dx, dy, sources),
       drag: () => this.link()
     })
 
-    this.element.className = 'inline-comment'
+    this.nested.className = 'inline-comment'
   }
 
   link() {
@@ -31,7 +35,7 @@ export class InlineComment extends Comment {
   }
 
   getIntersectNode() {
-    const commRect = this.element.getBoundingClientRect()
+    const commRect = this.nested.getBoundingClientRect()
 
     return Array.from(this.area.nodeViews)
       .map(([id, view]) => {
@@ -42,9 +46,9 @@ export class InlineComment extends Comment {
       })
   }
 
-  offset(dx: number, dy: number) {
-    this.x += dx
-    this.y += dy
-    this.update()
+  update(): void {
+    super.update()
+
+    this.width = Math.max(80, this.nested.clientWidth)
   }
 }

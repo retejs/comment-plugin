@@ -1,5 +1,5 @@
 import { NodeEditor, NodeId } from 'rete'
-import { AreaPlugin } from 'rete-area-plugin'
+import { BaseAreaPlugin } from 'rete-area-plugin'
 
 import { Comment } from './comment'
 import { ExpectedSchemes } from './types'
@@ -12,22 +12,22 @@ export class FrameComment extends Comment {
 
   constructor(
     text: string,
-        private area: AreaPlugin<ExpectedSchemes, never>,
-        private editor: NodeEditor<ExpectedSchemes>,
-        events?: {
-            contextMenu?: (comment: FrameComment) => void,
-            pick?: (comment: FrameComment) => void,
-            translate?: (comment: FrameComment, dx: number, dy: number) => void,
-        }
+    area: BaseAreaPlugin<ExpectedSchemes, any>,
+    private editor: NodeEditor<ExpectedSchemes>,
+    events?: {
+      contextMenu?: (comment: FrameComment) => void,
+      pick?: (comment: FrameComment) => void,
+      translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => void,
+    }
   ) {
-    super(text, () => area.area.transform.k, {
+    super(text, area, {
       contextMenu: () => events?.contextMenu && events.contextMenu(this),
       pick: () => events?.pick && events.pick(this),
-      translate: (dx, dy) => events?.translate && events.translate(this, dx, dy),
+      translate: (dx, dy, sources) => events?.translate && events.translate(this, dx, dy, sources),
       drag: () => 1
     })
 
-    this.element.className = 'frame-comment'
+    this.nested.className = 'frame-comment'
   }
 
   private getRect(): Rect {
@@ -74,21 +74,20 @@ export class FrameComment extends Comment {
     const bbox = nodesBBox(this.editor, this.area, this.links, { top: 50, left: 20, right: 20, bottom: 20 })
 
     if (bbox) {
-      this.x = bbox.left
-      this.y = bbox.top
       this.width = bbox.width
       this.height = bbox.height
+      this.translate(bbox.left - this.x, bbox.top - this.y, this.links)
     } else {
       this.width = 100
       this.height = 100
+      this.translate(0, 0, this.links)
     }
-    this.update()
   }
 
   public update() {
     super.update()
 
-    this.element.style.width = this.width+'px'
-    this.element.style.height = this.height+'px'
+    this.nested.style.width = this.width + 'px'
+    this.nested.style.height = this.height + 'px'
   }
 }

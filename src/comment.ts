@@ -1,43 +1,60 @@
 import { getUID, NodeId } from 'rete'
-import { Drag } from 'rete-area-plugin'
+import { BaseAreaPlugin, Drag } from 'rete-area-plugin'
+
+import { ExpectedSchemes, Position } from './types'
 
 export class Comment {
   id: string
   dragHandler!: Drag
   x = 0
   y = 0
+  width = 0
+  height = 0
   links: string[] = []
   element!: HTMLElement
-  prevPosition: null | { x: number, y: number } = null
+  nested!: HTMLElement
+  prevPosition: null | Position = null
 
   constructor(
-        public text: string,
-        private getZoom: () => number,
-        private events?: {
-            contextMenu?: null | (() => void),
-            pick?: null | (() => void),
-            translate?: null | ((dx: number, dy: number) => void),
-            drag?: null | (() => void)
-        }
+    public text: string,
+    public area: BaseAreaPlugin<ExpectedSchemes, any>,
+    private events?: {
+      contextMenu?: null | (() => void),
+      pick?: null | (() => void),
+      translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => void),
+      drag?: null | (() => void)
+    }
   ) {
     this.id = getUID()
     this.element = document.createElement('div')
+    this.nested = document.createElement('div')
+    this.element.appendChild(this.nested)
     this.element.addEventListener('contextmenu', this.onContextMenu.bind(this))
 
     this.dragHandler = new Drag()
 
     this.dragHandler.initialize(
-      this.element,
+      this.nested,
       {
         getCurrentPosition: () => ({ x: this.x, y: this.y }),
-        getZoom: () => this.getZoom()
+        getZoom: () => 1
       },
       {
         start: () => {
-          this.prevPosition = { x: this.x, y: this.y }
+          this.prevPosition = { ...area.area.pointer }
+
           this.events?.pick && this.events?.pick()
         },
-        translate: (x, y) => this.onTranslate(x, y),
+        translate: () => {
+          if (this.prevPosition) {
+            const pointer = { ...area.area.pointer }
+            const dx = pointer.x - this.prevPosition.x
+            const dy = pointer.y - this.prevPosition.y
+
+            this.translate(dx, dy)
+            this.prevPosition = pointer
+          }
+        },
         drag: () => {
           this.prevPosition = null
           this.events?.drag && this.events?.drag()
@@ -62,37 +79,27 @@ export class Comment {
     this.events?.contextMenu && this.events?.contextMenu()
   }
 
-  onTranslate(x: number, y: number) {
-    if (!this.prevPosition) return
-
-    const dx = x - this.prevPosition.x
-    const dy = y - this.prevPosition.y
-
-    this.translate(dx, dy)
-    this.prevPosition = { x, y }
-  }
-
-  translate(dx: number, dy: number) {
+  translate(dx: number, dy: number, sources?: NodeId[]) {
     this.x += dx
     this.y += dy
 
     if (this.events?.translate) {
-      this.events?.translate(dx, dy)
+      this.events?.translate(dx, dy, sources)
     }
     this.update()
   }
 
   select() {
-    this.element.classList.add('selected')
+    this.nested.classList.add('selected')
   }
 
   unselect() {
-    this.element.classList.remove('selected')
+    this.nested.classList.remove('selected')
   }
 
   update() {
-    this.element.innerText = this.text
-    this.element.style.transform = `translate(${this.x}px, ${this.y}px)`
+    this.nested.innerText = this.text
+    this.nested.style.transform = `translate(${this.x}px, ${this.y}px)`
   }
 
   destroy() {
