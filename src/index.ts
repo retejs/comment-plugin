@@ -13,7 +13,11 @@ export { Comment, FrameComment, InlineComment }
 export type { ExpectedSchemes }
 export * as CommentExtensions from './extensions'
 
-type Produces =
+/**
+ * A union of all possible signals that can be emitted by the comment plugin
+ * @priority 9
+ */
+export type Produces =
   | { type: 'commentcreated', data: Comment }
   | { type: 'commentremoved', data: Comment }
   | { type: 'editcomment', data: Comment }
@@ -22,15 +26,27 @@ type Produces =
   | { type: 'commenttranslated', data: { id: Comment['id'], dx: number, dy: number, sources?: NodeId[] } }
   | { type: 'commentlinktranslate', data: { id: Comment['id'], link: string } }
 
-type Props = {
+/**
+ * Comment plugin properties
+ */
+export type Props = {
+  /** Edit comment callback */
   edit?: (comment: Comment) => Promise<string>
 }
 
+/**
+ * A plugin that provides comments for nodes
+ * @priority 8
+ */
 export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes>> extends Scope<Produces, [BaseArea<Schemes> | K]> {
   public comments = new Map<Comment['id'], Comment>()
   private area!: BaseAreaPlugin<Schemes, K>
   private editor!: NodeEditor<Schemes>
 
+  /**
+   * @constructor
+   * @param props Optional comment plugin properties
+   */
   constructor(private props?: Props) {
     super('comment')
   }
@@ -134,6 +150,10 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     })
   }
 
+  /**
+   * Trigger edit form for a comment
+   * @param id Comment id
+   */
   async editComment(id: Comment['id']) {
     const comment = this.comments.get(id)
 
@@ -147,6 +167,14 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     }
   }
 
+  /**
+   * Adds an inline comment which is represented by a block with text at certain position, which is attached to the node.
+   * When user translates a node, the comment will be translated as well.
+   * When user drops a comment on a node, the comment will be linked to the node.
+   * @param text Comment text
+   * @param position Comment position
+   * @param link Node ID the comment is linked with
+   */
   public addInline(text: string, [x, y]: [number, number], link?: string) {
     const comment = new InlineComment(text, this.area, {
       contextMenu: ({ id }) => this.editComment(id),
@@ -164,6 +192,13 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.add(comment)
   }
 
+  /**
+   * Adds a frame comment. Represents a rectangle with a text and nodes linked to it.
+   * When user translates a comment, all linked nodes will be translated as well.
+   * When user drops a node on a comment, the node will be linked to the comment.
+   * @param text Comment text
+   * @param links List of node IDs the comment is linked with
+   */
   public addFrame(text: string, links: string[] = []) {
     const comment = new FrameComment(text, this.area, this.editor, {
       contextMenu: ({ id }) => this.editComment(id),
@@ -188,6 +223,10 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.emit({ type: 'commentcreated', data: comment })
   }
 
+  /**
+   * Removes a comment
+   * @param id Comment id
+   */
   public delete(id: Comment['id']) {
     const comment = this.comments.get(id)
 
@@ -201,6 +240,12 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.emit({ type: 'commentremoved', data: comment })
   }
 
+  /**
+   * Translates a comment
+   * @param id Comment id
+   * @param dx Delta x
+   * @param dy Delta y
+   */
   public translate(id: Comment['id'], dx: number, dy: number) {
     const comment = this.comments.get(id)
 
@@ -209,6 +254,10 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     comment.translate(dx, dy)
   }
 
+  /**
+   * Selects a comment
+   * @param id Comment id
+   */
   public select(id: Comment['id']) {
     const comment = this.comments.get(id)
 
@@ -218,6 +267,10 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.emit({ type: 'commentselected', data: comment })
   }
 
+  /**
+   * Unselects a comment
+   * @param id Comment id
+   */
   public unselect(id: Comment['id']) {
     const comment = this.comments.get(id)
 
@@ -227,6 +280,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.emit({ type: 'commentunselected', data: comment })
   }
 
+  /**
+   * Removes all comments
+   */
   public clear() {
     Array.from(this.comments.keys()).map(id => this.delete(id))
   }
