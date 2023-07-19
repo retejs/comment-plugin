@@ -4,6 +4,12 @@ import { CommentPlugin, ExpectedSchemes } from '..'
 
 type Selector = ReturnType<typeof AreaExtensions.selector>
 
+/**
+ * Enables synchronization between comments and the selector
+ * @param plugin Comment plugin instance
+ * @param selector Selector instance
+ * @param accumulating Accumulating state
+ */
 export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S, K>, selector: Selector, accumulating: { active(): boolean }) {
   // eslint-disable-next-line max-statements
   plugin.addPipe(context => {
