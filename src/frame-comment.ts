@@ -15,9 +15,9 @@ export class FrameComment extends Comment {
     area: BaseAreaPlugin<ExpectedSchemes, any>,
     private editor: NodeEditor<ExpectedSchemes>,
     events?: {
-      contextMenu?: (comment: FrameComment) => void,
-      pick?: (comment: FrameComment) => void,
-      translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => void,
+      contextMenu?: (comment: FrameComment) => void
+      pick?: (comment: FrameComment) => void
+      translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => void
     }
   ) {
     super(text, area, {
@@ -87,7 +87,7 @@ export class FrameComment extends Comment {
   public update() {
     super.update()
 
-    this.nested.style.width = this.width + 'px'
-    this.nested.style.height = this.height + 'px'
+    this.nested.style.width = `${this.width}px`
+    this.nested.style.height = `${this.height}px`
   }
 }

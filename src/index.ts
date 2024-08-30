@@ -63,7 +63,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
 
     // eslint-disable-next-line max-statements, complexity
     this.addPipe(context => {
-      if (!('type' in context)) return context
+      if (!context || typeof context !== 'object' || !('type' in context)) return context
 
       if (context.type === 'nodepicked') {
         picked.push(context.data.id)
@@ -108,12 +108,13 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
         comment.links
           .filter(linkId => !sources?.includes(linkId))
           .map(linkId => ({ linkId, view: this.area.nodeViews.get(linkId) }))
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
           .forEach(async ({ linkId, view }) => {
             if (!view) return
             // prevent an infinite loop if a node is selected and translated along with the selected comment
             if (!await this.emit({ type: 'commentlinktranslate', data: { id, link: linkId } })) return
 
-            if (!isTranslating(linkId)) translate(linkId, view.position.x + dx, view.position.y + dy)
+            if (!isTranslating(linkId)) void translate(linkId, view.position.x + dx, view.position.y + dy)
           })
       }
       if (context.type === 'nodedragged') {
@@ -126,7 +127,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
             const contains = comment.intersects(id)
             const links = comment.links.filter(nodeId => nodeId !== id)
 
-            comment.linkTo(contains ? [...links, id] : links)
+            comment.linkTo(contains
+              ? [...links, id]
+              : links)
           })
 
         picked = picked.filter(p => p !== id)
@@ -158,7 +161,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     const comment = this.comments.get(id)
 
     if (!comment) throw new Error('comment not found')
-    const newText = this.props?.edit ? await this.props.edit(comment) : prompt('Edit comment', comment.text)
+    const newText = this.props?.edit
+      ? await this.props.edit(comment)
+      : prompt('Edit comment', comment.text)
 
     if (newText !== null) {
       comment.text = newText
@@ -177,12 +182,12 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    */
   public addInline(text: string, [x, y]: [number, number], link?: string) {
     const comment = new InlineComment(text, this.area, {
-      contextMenu: ({ id }) => this.editComment(id),
-      pick: (data) => {
+      contextMenu: ({ id }) => void this.editComment(id),
+      pick: data => {
         this.area.area.content.reorder(comment.element, null)
-        this.emit({ type: 'commentselected', data })
+        void this.emit({ type: 'commentselected', data })
       },
-      translate: ({ id }, dx, dy, sources) => this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      translate: ({ id }, dx, dy, sources) => void this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
     })
 
     comment.x = x
@@ -201,12 +206,12 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    */
   public addFrame(text: string, links: string[] = []) {
     const comment = new FrameComment(text, this.area, this.editor, {
-      contextMenu: ({ id }) => this.editComment(id),
-      pick: (data) => {
+      contextMenu: ({ id }) => void this.editComment(id),
+      pick: data => {
         this.area.area.content.reorder(comment.element, this.area.area.content.holder.firstChild)
-        this.emit({ type: 'commentselected', data })
+        void this.emit({ type: 'commentselected', data })
       },
-      translate: ({ id }, dx, dy, sources) => this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      translate: ({ id }, dx, dy, sources) => void this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
     })
 
     comment.linkTo(links)
@@ -220,7 +225,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.comments.set(comment.id, comment)
 
     this.area.area.content.add(comment.element)
-    this.emit({ type: 'commentcreated', data: comment })
+    void this.emit({ type: 'commentcreated', data: comment })
   }
 
   /**
@@ -237,7 +242,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.comments.delete(comment.id)
     comment.destroy()
 
-    this.emit({ type: 'commentremoved', data: comment })
+    void this.emit({ type: 'commentremoved', data: comment })
   }
 
   /**
@@ -264,7 +269,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     if (!comment) return
 
     comment.select()
-    this.emit({ type: 'commentselected', data: comment })
+    void this.emit({ type: 'commentselected', data: comment })
   }
 
   /**
@@ -277,13 +282,15 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     if (!comment) return
 
     comment.unselect()
-    this.emit({ type: 'commentunselected', data: comment })
+    void this.emit({ type: 'commentunselected', data: comment })
   }
 
   /**
    * Removes all comments
    */
   public clear() {
-    Array.from(this.comments.keys()).map(id => this.delete(id))
+    Array.from(this.comments.keys()).map(id => {
+      this.delete(id)
+    })
   }
 }

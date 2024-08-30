@@ -11,9 +11,9 @@ type Selector = ReturnType<typeof AreaExtensions.selector>
  * @param accumulating Accumulating state
  */
 export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S, K>, selector: Selector, accumulating: { active(): boolean }) {
-  // eslint-disable-next-line max-statements
+  // eslint-disable-next-line max-statements, complexity
   plugin.addPipe(context => {
-    if (!('type' in context)) return context
+    if (!context || typeof context !== 'object' || !('type' in context)) return context
 
     if (context.type === 'commentlinktranslate') {
       const { link } = context.data
