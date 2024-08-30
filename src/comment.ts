@@ -19,9 +19,9 @@ export class Comment {
     public text: string,
     public area: BaseAreaPlugin<ExpectedSchemes, any>,
     private events?: {
-      contextMenu?: null | (() => void),
-      pick?: null | (() => void),
-      translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => void),
+      contextMenu?: null | (() => void)
+      pick?: null | (() => void)
+      translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => void)
       drag?: null | (() => void)
     }
   ) {
@@ -43,7 +43,9 @@ export class Comment {
         start: () => {
           this.prevPosition = { ...area.area.pointer }
 
-          this.events?.pick && this.events?.pick()
+          if (this.events?.pick) {
+            this.events.pick()
+          }
         },
         translate: () => {
           if (this.prevPosition) {
@@ -57,7 +59,9 @@ export class Comment {
         },
         drag: () => {
           this.prevPosition = null
-          this.events?.drag && this.events?.drag()
+          if (this.events?.drag) {
+            this.events.drag()
+          }
         }
       }
     )
@@ -76,7 +80,9 @@ export class Comment {
     e.preventDefault()
     e.stopPropagation()
 
-    this.events?.contextMenu && this.events?.contextMenu()
+    if (this.events?.contextMenu) {
+      this.events.contextMenu()
+    }
   }
 
   translate(dx: number, dy: number, sources?: NodeId[]) {
@@ -84,7 +90,7 @@ export class Comment {
     this.y += dy
 
     if (this.events?.translate) {
-      this.events?.translate(dx, dy, sources)
+      this.events.translate(dx, dy, sources)
     }
     this.update()
   }

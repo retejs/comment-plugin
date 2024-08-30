@@ -14,7 +14,7 @@ export class InlineComment extends Comment {
     area: BaseAreaPlugin<ExpectedSchemes, any>,
     events?: {
       contextMenu?: (comment: InlineComment) => void
-      pick?: (comment: InlineComment) => void,
+      pick?: (comment: InlineComment) => void
       translate?: (comment: InlineComment, dx: number, dy: number, sources?: NodeId[]) => void
     }
   ) {
@@ -22,7 +22,9 @@ export class InlineComment extends Comment {
       contextMenu: () => events?.contextMenu && events.contextMenu(this),
       pick: () => events?.pick && events.pick(this),
       translate: (dx, dy, sources) => events?.translate && events.translate(this, dx, dy, sources),
-      drag: () => this.link()
+      drag: () => {
+        this.link()
+      }
     })
 
     this.nested.className = 'inline-comment'
@@ -31,7 +33,9 @@ export class InlineComment extends Comment {
   link() {
     const intersection = this.getIntersectNode()
 
-    this.linkTo(intersection ? [intersection.id] : [])
+    this.linkTo(intersection
+      ? [intersection.id]
+      : [])
   }
 
   getIntersectNode() {

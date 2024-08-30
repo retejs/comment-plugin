@@ -7,19 +7,19 @@ export type Rect = { left: number, top: number, right: number, bottom: number }
 
 export function intersectRect(r1: Rect, r2: Rect) {
   return !(
-    r2.left > r1.right ||
-    r2.right < r1.left ||
-    r2.top > r1.bottom ||
-    r2.bottom < r1.top
+    r2.left > r1.right
+    || r2.right < r1.left
+    || r2.top > r1.bottom
+    || r2.bottom < r1.top
   )
 }
 
 export function containsRect(r1: Rect, r2: Rect) {
   return (
-    r2.left > r1.left &&
-    r2.right < r1.right &&
-    r2.top > r1.top &&
-    r2.bottom < r1.bottom
+    r2.left > r1.left
+    && r2.right < r1.right
+    && r2.top > r1.top
+    && r2.bottom < r1.bottom
   )
 }
 
@@ -61,12 +61,12 @@ export function nodesBBox<S extends ExpectedSchemes>(editor: NodeEditor<S>, area
 }
 
 export function trackedTranslate<S extends ExpectedSchemes, T>(props: { area: BaseAreaPlugin<S, T> }): {
-  translate: (id: string, x: number, y: number) => Promise<void>,
+  translate: (id: string, x: number, y: number) => Promise<void>
   isTranslating: (id: NodeId) => boolean
 } {
   const active = new Map<NodeId, number>()
-  const increment = (id: NodeId) => active.set(id, (active.get(id) || 0) + 1)
-  const decrement = (id: NodeId) => active.set(id, (active.get(id) || 0) - 1)
+  const increment = (id: NodeId) => active.set(id, (active.get(id) ?? 0) + 1)
+  const decrement = (id: NodeId) => active.set(id, (active.get(id) ?? 0) - 1)
 
   return {
     async translate(id, x, y) {
@@ -83,7 +83,7 @@ export function trackedTranslate<S extends ExpectedSchemes, T>(props: { area: Ba
       }
     },
     isTranslating(id) {
-      return (active.get(id) || 0) > 0
+      return (active.get(id) ?? 0) > 0
     }
   }
 }
