@@ -179,6 +179,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * @param text Comment text
    * @param position Comment position
    * @param link Node ID the comment is linked with
+   * @returns comment that was created
    */
   public addInline(text: string, [x, y]: [number, number], link?: string) {
     const comment = new InlineComment(text, this.area, {
@@ -195,6 +196,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     if (link) comment.linkTo([link])
 
     this.add(comment)
+    return comment
   }
 
   /**
@@ -203,6 +205,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * When user drops a node on a comment, the node will be linked to the comment.
    * @param text Comment text
    * @param links List of node IDs the comment is linked with
+   * @returns comment that was created
    */
   public addFrame(text: string, links: string[] = []) {
     const comment = new FrameComment(text, this.area, this.editor, {
@@ -218,6 +221,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
 
     this.add(comment)
     this.area.area.content.reorder(comment.element, this.area.area.content.holder.firstChild)
+    return comment
   }
 
   public add(comment: Comment) {
