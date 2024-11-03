@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/retejs/comment-plugin/compare/v2.0.2...v2.1.0) (2024-11-03)
+
+
+### Features
+
+* return created comment in add functions ([ca99180](https://github.com/retejs/comment-plugin/commit/ca99180008203d7a41d9c5e6d2292eb1654f51fc))
+
 ## [2.0.2](https://github.com/retejs/comment-plugin/compare/v2.0.1...v2.0.2) (2024-08-30)
 
 
