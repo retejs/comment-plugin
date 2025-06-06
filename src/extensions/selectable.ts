@@ -12,7 +12,7 @@ type Selector = ReturnType<typeof AreaExtensions.selector>
  */
 export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S, K>, selector: Selector, accumulating: { active(): boolean }) {
   // eslint-disable-next-line max-statements, complexity
-  plugin.addPipe(context => {
+  plugin.addPipe(async context => {
     if (!context || typeof context !== 'object' || !('type' in context)) return context
 
     if (context.type === 'commentlinktranslate') {
@@ -24,8 +24,8 @@ export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S
       const comment = context.data
       const { id } = comment
 
-      if (!accumulating.active()) selector.unselectAll()
-      selector.add({
+      if (!accumulating.active()) await selector.unselectAll()
+      await selector.add({
         id,
         label: 'comment',
         translate(dx, dy) {
@@ -41,7 +41,7 @@ export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S
     if (context.type === 'commentunselected') {
       const { id } = context.data
 
-      selector.remove({ id, label: 'comment' })
+      await selector.remove({ id, label: 'comment' })
     }
     if (context.type === 'commenttranslated') {
       const { id, dx, dy } = context.data
