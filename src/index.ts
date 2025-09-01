@@ -7,7 +7,7 @@ import { Comment } from './comment'
 import { FrameComment } from './frame-comment'
 import { InlineComment } from './inline-comment'
 import type { ExpectedSchemes } from './types'
-import { trackedTranslate } from './utils'
+import { trackedTranslate, trackedTranslateComment } from './utils'
 
 export { Comment, FrameComment, InlineComment }
 export type { ExpectedSchemes }
@@ -38,7 +38,8 @@ export type Props = {
  * A plugin that provides comments for nodes
  * @priority 8
  */
-export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes>> extends Scope<Produces, [BaseArea<Schemes> | K]> {
+export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes>>
+  extends Scope<Produces, [BaseArea<Schemes> | K]> {
   public comments = new Map<Comment['id'], Comment>()
   private area!: BaseAreaPlugin<Schemes, K>
   private editor!: NodeEditor<Schemes>
@@ -57,17 +58,13 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.area = this.parentScope<BaseAreaPlugin<Schemes, K>>(BaseAreaPlugin)
     this.editor = this.area.parentScope<NodeEditor<Schemes>>(NodeEditor)
 
-    let picked: string[] = []
-
     const { translate, isTranslating } = trackedTranslate({ area: this.area })
+    const commentTracker = trackedTranslateComment(this.comments)
 
     // eslint-disable-next-line max-statements, complexity
-    this.addPipe(context => {
+    this.addPipe(async context => {
       if (!context || typeof context !== 'object' || !('type' in context)) return context
 
-      if (context.type === 'nodepicked') {
-        picked.push(context.data.id)
-      }
       if (context.type === 'reordered') {
         const views = Array.from(this.area.nodeViews.entries())
         const matchedView = views.find(([, view]) => view.element === context.data.element)
@@ -92,30 +89,33 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
         const dy = position.y - previous.y
         const comments = Array.from(this.comments.values())
 
-        comments
+        await Promise.all(comments
           .filter(comment => comment.linkedTo(id))
-          .map(comment => {
-            if (comment instanceof InlineComment) comment.translate(dx, dy, [id])
-            if (comment instanceof FrameComment && !picked.includes(id)) comment.resize()
-          })
+          .map(async comment => {
+            if (comment instanceof InlineComment && !commentTracker.isTranslating(comment.id)) {
+              await commentTracker.translate(comment.id, dx, dy, [id])
+            }
+            if (comment instanceof FrameComment && !commentTracker.isResizing(comment.id)) {
+              await commentTracker.resize(comment.id)
+            }
+          }))
       }
       if (context.type === 'commenttranslated') {
         const { id, dx, dy, sources } = context.data
         const comment = this.comments.get(id)
 
-        if (!(comment instanceof FrameComment && comment)) return context
+        if (!(comment instanceof FrameComment)) return context
 
-        comment.links
+        await Promise.all(comment.links
           .filter(linkId => !sources?.includes(linkId))
           .map(linkId => ({ linkId, view: this.area.nodeViews.get(linkId) }))
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          .forEach(async ({ linkId, view }) => {
+          .map(async ({ linkId, view }) => {
             if (!view) return
             // prevent an infinite loop if a node is selected and translated along with the selected comment
             if (!await this.emit({ type: 'commentlinktranslate', data: { id, link: linkId } })) return
 
-            if (!isTranslating(linkId)) void translate(linkId, view.position.x + dx, view.position.y + dy)
-          })
+            if (!isTranslating(linkId)) await translate(linkId, view.position.x + dx, view.position.y + dy)
+          }))
       }
       if (context.type === 'nodedragged') {
         const { id } = context.data
@@ -123,7 +123,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
 
         comments
           .filter((comment): comment is FrameComment => comment instanceof FrameComment)
-          .filter(comment => {
+          .forEach(comment => {
             const contains = comment.intersects(id)
             const links = comment.links.filter(nodeId => nodeId !== id)
 
@@ -131,8 +131,6 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
               ? [...links, id]
               : links)
           })
-
-        picked = picked.filter(p => p !== id)
       }
       return context
     })
@@ -168,7 +166,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     if (newText !== null) {
       comment.text = newText
       comment.update()
-      comment.translate(0, 0)
+      await comment.translate(0, 0)
     }
   }
 
@@ -188,7 +186,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
         this.area.area.content.reorder(comment.element, null)
         void this.emit({ type: 'commentselected', data })
       },
-      translate: ({ id }, dx, dy, sources) => void this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      translate: async ({ id }, dx, dy, sources) => {
+        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      }
     })
 
     comment.x = x
@@ -214,7 +214,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
         this.area.area.content.reorder(comment.element, this.area.area.content.holder.firstChild)
         void this.emit({ type: 'commentselected', data })
       },
-      translate: ({ id }, dx, dy, sources) => void this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      translate: async ({ id }, dx, dy, sources) => {
+        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      }
     })
 
     comment.linkTo(links)
@@ -260,7 +262,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
 
     if (!comment) return
 
-    comment.translate(dx, dy)
+    void comment.translate(dx, dy)
   }
 
   /**

@@ -23,7 +23,12 @@ export function containsRect(r1: Rect, r2: Rect) {
   )
 }
 
-export function nodesBBox<S extends ExpectedSchemes>(editor: NodeEditor<S>, area: BaseAreaPlugin<S, any>, ids: NodeId[], margin: number | Rect) {
+export function nodesBBox<S extends ExpectedSchemes>(
+  editor: NodeEditor<S>,
+  area: BaseAreaPlugin<S, unknown>,
+  ids: NodeId[],
+  margin: number | Rect
+) {
   const marginRect: Rect = typeof margin === 'number'
     ? { left: margin, top: margin, right: margin, bottom: margin }
     : margin
@@ -84,6 +89,53 @@ export function trackedTranslate<S extends ExpectedSchemes, T>(props: { area: Ba
     },
     isTranslating(id) {
       return (active.get(id) ?? 0) > 0
+    }
+  }
+}
+
+type TranslatableComment = {
+  id: string
+  translate: (dx: number, dy: number, sources?: NodeId[]) => Promise<void>
+  resize?: () => Promise<void>
+}
+
+export function trackedTranslateComment<CommentType extends TranslatableComment>(comments: Map<string, CommentType>): {
+  translate: (id: string, dx: number, dy: number, sources?: NodeId[]) => Promise<void>
+  resize: (id: string) => Promise<void>
+  isTranslating: (id: string) => boolean
+  isResizing: (id: string) => boolean
+} {
+  const activeTranslations = new Map<string, number>()
+  const increment = (id: string) => activeTranslations.set(id, (activeTranslations.get(id) ?? 0) + 1)
+  const decrement = (id: string) => activeTranslations.set(id, (activeTranslations.get(id) ?? 0) - 1)
+
+  return {
+    async translate(id, dx, dy, sources) {
+      const comment = comments.get(id)
+
+      if (!comment) throw new Error('cannot find comment')
+
+      if (dx !== 0 || dy !== 0) {
+        increment(id)
+        await comment.translate(dx, dy, sources)
+        decrement(id)
+      }
+    },
+    async resize(id) {
+      const comment = comments.get(id)
+
+      if (!comment) throw new Error('cannot find comment')
+      if (!comment.resize) throw new Error('comment does not support resize')
+
+      increment(id)
+      await comment.resize()
+      decrement(id)
+    },
+    isTranslating(id) {
+      return (activeTranslations.get(id) ?? 0) > 0
+    },
+    isResizing(id) {
+      return (activeTranslations.get(id) ?? 0) > 0
     }
   }
 }
