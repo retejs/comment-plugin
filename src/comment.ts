@@ -21,7 +21,7 @@ export class Comment {
     private events?: {
       contextMenu?: null | (() => void)
       pick?: null | (() => void)
-      translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => void)
+      translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => Promise<void>)
       drag?: null | (() => void)
     }
   ) {
@@ -53,7 +53,7 @@ export class Comment {
             const dx = pointer.x - this.prevPosition.x
             const dy = pointer.y - this.prevPosition.y
 
-            this.translate(dx, dy)
+            void this.translate(dx, dy)
             this.prevPosition = pointer
           }
         },
@@ -69,7 +69,7 @@ export class Comment {
   }
 
   linkTo(ids: NodeId[]) {
-    this.links = ids || []
+    this.links = ids
   }
 
   linkedTo(nodeId: NodeId) {
@@ -85,12 +85,12 @@ export class Comment {
     }
   }
 
-  translate(dx: number, dy: number, sources?: NodeId[]) {
+  async translate(dx: number, dy: number, sources?: NodeId[]) {
     this.x += dx
     this.y += dy
 
     if (this.events?.translate) {
-      this.events.translate(dx, dy, sources)
+      await this.events.translate(dx, dy, sources)
     }
     this.update()
   }

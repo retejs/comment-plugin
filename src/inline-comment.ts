@@ -15,13 +15,19 @@ export class InlineComment extends Comment {
     events?: {
       contextMenu?: (comment: InlineComment) => void
       pick?: (comment: InlineComment) => void
-      translate?: (comment: InlineComment, dx: number, dy: number, sources?: NodeId[]) => void
+      translate?: (comment: InlineComment, dx: number, dy: number, sources?: NodeId[]) => Promise<void>
     }
   ) {
     super(text, area, {
-      contextMenu: () => events?.contextMenu && events.contextMenu(this),
-      pick: () => events?.pick && events.pick(this),
-      translate: (dx, dy, sources) => events?.translate && events.translate(this, dx, dy, sources),
+      contextMenu: () => {
+        events?.contextMenu?.(this)
+      },
+      pick: () => {
+        events?.pick?.(this)
+      },
+      translate: async (dx, dy, sources) => {
+        if (events?.translate) await events.translate(this, dx, dy, sources)
+      },
       drag: () => {
         this.link()
       }

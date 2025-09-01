@@ -10,7 +10,11 @@ type Selector = ReturnType<typeof AreaExtensions.selector>
  * @param selector Selector instance
  * @param accumulating Accumulating state
  */
-export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S, K>, selector: Selector, accumulating: { active(): boolean }) {
+export function selectable<S extends ExpectedSchemes, K>(
+  plugin: CommentPlugin<S, K>,
+  selector: Selector,
+  accumulating: { active(): boolean }
+) {
   // eslint-disable-next-line max-statements, complexity
   plugin.addPipe(async context => {
     if (!context || typeof context !== 'object' || !('type' in context)) return context
@@ -28,8 +32,8 @@ export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S
       await selector.add({
         id,
         label: 'comment',
-        translate(dx, dy) {
-          plugin.translate(id, dx, dy)
+        async translate(dx, dy) {
+          await plugin.translate(id, dx, dy)
         },
         unselect() {
           plugin.unselect(id)
@@ -46,7 +50,7 @@ export function selectable<S extends ExpectedSchemes, K>(plugin: CommentPlugin<S
     if (context.type === 'commenttranslated') {
       const { id, dx, dy } = context.data
 
-      if (selector.isPicked({ id, label: 'comment' })) selector.translate(dx, dy)
+      if (selector.isPicked({ id, label: 'comment' })) await selector.translate(dx, dy)
     }
 
     return context

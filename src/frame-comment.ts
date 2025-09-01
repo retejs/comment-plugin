@@ -17,13 +17,19 @@ export class FrameComment extends Comment {
     events?: {
       contextMenu?: (comment: FrameComment) => void
       pick?: (comment: FrameComment) => void
-      translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => void
+      translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => Promise<void>
     }
   ) {
     super(text, area, {
-      contextMenu: () => events?.contextMenu && events.contextMenu(this),
-      pick: () => events?.pick && events.pick(this),
-      translate: (dx, dy, sources) => events?.translate && events.translate(this, dx, dy, sources),
+      contextMenu: () => {
+        events?.contextMenu?.(this)
+      },
+      pick: () => {
+        events?.pick?.(this)
+      },
+      translate: async (dx, dy, sources) => {
+        if (events?.translate) await events.translate(this, dx, dy, sources)
+      },
       drag: () => 1
     })
 
@@ -67,20 +73,20 @@ export class FrameComment extends Comment {
 
   public linkTo(ids: string[]): void {
     super.linkTo(ids)
-    this.resize()
+    void this.resize()
   }
 
-  public resize() {
+  public async resize() {
     const bbox = nodesBBox(this.editor, this.area, this.links, { top: 50, left: 20, right: 20, bottom: 20 })
 
     if (bbox) {
       this.width = bbox.width
       this.height = bbox.height
-      this.translate(bbox.left - this.x, bbox.top - this.y, this.links)
+      await this.translate(bbox.left - this.x, bbox.top - this.y, this.links)
     } else {
       this.width = 100
       this.height = 100
-      this.translate(0, 0, this.links)
+      await this.translate(0, 0, this.links)
     }
   }
 
