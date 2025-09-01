@@ -24,12 +24,12 @@
   },
   "peerDependencies": {
     "rete": "^2.0.1",
-    "rete-area-plugin": "^2.0.0"
+    "rete-area-plugin": "^2.1.4"
   },
   "devDependencies": {
     "globals": "^15.9.0",
     "rete": "^2.0.1",
-    "rete-area-plugin": "^2.0.0",
+    "rete-area-plugin": "^2.1.4",
     "rete-cli": "~2.0.1",
     "rollup-plugin-sass": "1.12.17",
     "typescript": "4.8.4"
