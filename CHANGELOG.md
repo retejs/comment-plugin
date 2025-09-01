@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/retejs/comment-plugin/compare/v2.1.1...v2.1.2) (2025-09-01)
+
+
+### Bug Fixes
+
+* prevent comment translation freeze with async operations and conflict tracking ([ab20617](https://github.com/retejs/comment-plugin/commit/ab206176141eabdccdfbbe5a0deec0e3c488d430))
+
 ## [2.1.1](https://github.com/retejs/comment-plugin/compare/v2.1.0...v2.1.1) (2025-09-01)
 
 
