@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/retejs/comment-plugin/compare/v2.1.0...v2.1.1) (2025-09-01)
+
+
+### Bug Fixes
+
+* handle async unselect ([c0d2550](https://github.com/retejs/comment-plugin/commit/c0d2550d276acfb0f7287fe2dcc93e6671b1e6e3))
+
 # [2.1.0](https://github.com/retejs/comment-plugin/compare/v2.0.2...v2.1.0) (2024-11-03)
 
 
