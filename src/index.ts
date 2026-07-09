@@ -7,7 +7,7 @@ import { Comment } from './comment'
 import { FrameComment } from './frame-comment'
 import { InlineComment } from './inline-comment'
 import type { ExpectedSchemes } from './types'
-import { trackedTranslate, trackedTranslateComment } from './utils'
+import { trackDragging, trackedTranslate, trackedTranslateComment } from './utils'
 
 export { Comment, FrameComment, InlineComment }
 export type { ExpectedSchemes }
@@ -60,11 +60,15 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
 
     const { translate, isTranslating } = trackedTranslate({ area: this.area })
     const commentTracker = trackedTranslateComment(this.comments)
+    const dragging = trackDragging()
 
     // eslint-disable-next-line max-statements, complexity
     this.addPipe(async context => {
       if (!context || typeof context !== 'object' || !('type' in context)) return context
 
+      if (context.type === 'nodepicked') {
+        dragging.start(context.data.id)
+      }
       if (context.type === 'reordered') {
         const views = Array.from(this.area.nodeViews.entries())
         const matchedView = views.find(([, view]) => view.element === context.data.element)
@@ -95,7 +99,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
             if (comment instanceof InlineComment && !commentTracker.isTranslating(comment.id)) {
               await commentTracker.translate(comment.id, dx, dy, [id])
             }
-            if (comment instanceof FrameComment && !commentTracker.isResizing(comment.id)) {
+            if (comment instanceof FrameComment
+              && !dragging.isDragging(id)
+              && !commentTracker.isResizing(comment.id)) {
               await commentTracker.resize(comment.id)
             }
           }))
@@ -131,12 +137,16 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
               ? [...links, id]
               : links)
           })
+
+        dragging.stop(id)
       }
       return context
     })
     this.editor.addPipe(context => {
       if (context.type === 'noderemoved') {
         const { id } = context.data
+
+        dragging.stop(id)
 
         Array.from(this.comments.values()).forEach(comment => {
           if (comment instanceof InlineComment && comment.linkedTo(id)) {
@@ -260,9 +270,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
   public translate(id: Comment['id'], dx: number, dy: number) {
     const comment = this.comments.get(id)
 
-    if (!comment) return
+    if (!comment) return Promise.resolve()
 
-    void comment.translate(dx, dy)
+    return comment.translate(dx, dy)
   }
 
   /**
