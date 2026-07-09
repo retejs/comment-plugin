@@ -1,0 +1,33 @@
+{
+  "name": "rete-comment-plugin",
+  "version": "2.1.3",
+  "description": "",
+  "author": "Vitaliy Stoliarov",
+  "license": "MIT",
+  "keywords": [
+    "plugin",
+    "rete",
+    "Rete.js"
+  ],
+  "homepage": "https://retejs.org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/retejs/comment-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/retejs/comment-plugin/issues"
+  },
+  "peerDependencies": {
+    "rete": "^2.0.1",
+    "rete-area-plugin": "^2.1.5"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.21.0"
+  },
+  "module": "rete-comment-plugin.esm.js",
+  "main": "rete-comment-plugin.common.js",
+  "jsdelivr": "rete-comment-plugin.min.js",
+  "unpkg": "rete-comment-plugin.min.js",
+  "types": "_types/index.d.ts",
+  "typings": "_types/index.d.ts"
+}
