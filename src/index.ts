@@ -4,14 +4,18 @@ import { NodeEditor, NodeId, Scope } from 'rete'
 import { BaseArea, BaseAreaPlugin } from 'rete-area-plugin'
 
 import { Comment } from './comment'
+import { createCommentNodeSync } from './comment-node-sync'
 import { FrameComment } from './frame-comment'
+import type { FrameBounds, FrameMembership } from './frame-membership'
+import { createFrameHandlers, createInlineHandlers } from './handlers'
 import { InlineComment } from './inline-comment'
-import type { ExpectedSchemes, Position } from './types'
-import { trackDragging, trackedTranslate, trackedTranslateComment } from './utils'
+import type { CommentRestoreData, ExpectedSchemes, Position } from './types'
 
 export { Comment, FrameComment, InlineComment }
 export type { ExpectedSchemes }
 export * as CommentExtensions from './extensions'
+export type { FrameBounds, FrameMembership } from './frame-membership'
+export type { CommentRestoreData } from './types'
 
 /**
  * A union of all possible signals that can be emitted by the comment plugin
@@ -25,7 +29,14 @@ export type Produces =
   | { type: 'commentselected', data: Comment }
   | { type: 'commentunselected', data: Comment }
   | { type: 'commenttranslated', data: { id: Comment['id'], dx: number, dy: number, sources?: NodeId[] } }
-  | { type: 'commentdragged', data: { id: Comment['id'], previous: Position, links: { prev: string[], next: string[] } } }
+  | {
+    type: 'commentdragged'
+    data: { id: Comment['id'], previous: Position, prevLinks: string[] }
+  }
+  | {
+    type: 'commentmembershipchanged'
+    data: { node?: { id: NodeId, previous: Position, current: Position }, frames: FrameMembership[] }
+  }
   | { type: 'commentlinktranslate', data: { id: Comment['id'], link: string } }
 
 /**
@@ -45,6 +56,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
   public comments = new Map<Comment['id'], Comment>()
   private area!: BaseAreaPlugin<Schemes, K>
   private editor!: NodeEditor<Schemes>
+  private membershipState = { restoring: false }
 
   /**
    * @constructor
@@ -60,105 +72,27 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     this.area = this.parentScope<BaseAreaPlugin<Schemes, K>>(BaseAreaPlugin)
     this.editor = this.area.parentScope<NodeEditor<Schemes>>(NodeEditor)
 
-    const { translate, isTranslating } = trackedTranslate({ area: this.area })
-    const commentTracker = trackedTranslateComment(this.comments)
-    const dragging = trackDragging()
+    const sync = createCommentNodeSync({
+      area: this.area,
+      comments: this.comments,
+      membershipState: this.membershipState,
+      emit: signal => this.emit(signal)
+    })
 
-    // eslint-disable-next-line max-statements, complexity
     this.addPipe(async context => {
       if (!context || typeof context !== 'object' || !('type' in context)) return context
 
-      if (context.type === 'nodepicked') {
-        dragging.start(context.data.id)
-      }
-      if (context.type === 'reordered') {
-        const views = Array.from(this.area.nodeViews.entries())
-        const matchedView = views.find(([, view]) => view.element === context.data.element)
+      if (context.type === 'nodepicked') sync.beginNodeDrag(context.data.id)
+      if (context.type === 'reordered') sync.reorderLinkedComments(context.data.element)
+      if (context.type === 'nodetranslated') await sync.onNodeTranslated(context.data)
+      if (context.type === 'commenttranslated') await sync.onCommentTranslated(context.data)
+      if (context.type === 'nodedragged') await sync.finalizeNodeDrag(context.data.id)
 
-        if (matchedView) {
-          const comments = Array.from(this.comments.entries())
-          const linkedComments = comments.filter(([, comment]) => comment.linkedTo(matchedView[0]))
-
-          for (const [, comment] of linkedComments) {
-            if (comment instanceof InlineComment) {
-              this.area.area.content.reorder(comment.element, matchedView[1].element.nextElementSibling)
-            }
-            if (comment instanceof FrameComment) {
-              this.area.area.content.reorder(comment.element, this.area.area.content.holder.firstChild)
-            }
-          }
-        }
-      }
-      if (context.type === 'nodetranslated') {
-        const { id, position, previous } = context.data
-        const dx = position.x - previous.x
-        const dy = position.y - previous.y
-        const comments = Array.from(this.comments.values())
-
-        await Promise.all(comments
-          .filter(comment => comment.linkedTo(id))
-          .map(async comment => {
-            if (comment instanceof InlineComment && !commentTracker.isTranslating(comment.id)) {
-              await commentTracker.translate(comment.id, dx, dy, [id])
-            }
-            if (comment instanceof FrameComment
-              && !dragging.isDragging(id)
-              && !commentTracker.isResizing(comment.id)) {
-              await commentTracker.resize(comment.id)
-            }
-          }))
-      }
-      if (context.type === 'commenttranslated') {
-        const { id, dx, dy, sources } = context.data
-        const comment = this.comments.get(id)
-
-        if (!(comment instanceof FrameComment)) return context
-
-        await Promise.all(comment.links
-          .filter(linkId => !sources?.includes(linkId))
-          .map(linkId => ({ linkId, view: this.area.nodeViews.get(linkId) }))
-          .map(async ({ linkId, view }) => {
-            if (!view) return
-            // prevent an infinite loop if a node is selected and translated along with the selected comment
-            if (!await this.emit({ type: 'commentlinktranslate', data: { id, link: linkId } })) return
-
-            if (!isTranslating(linkId)) await translate(linkId, view.position.x + dx, view.position.y + dy)
-          }))
-      }
-      if (context.type === 'nodedragged') {
-        const { id } = context.data
-        const comments = Array.from(this.comments.values())
-
-        comments
-          .filter((comment): comment is FrameComment => comment instanceof FrameComment)
-          .forEach(comment => {
-            const contains = comment.intersects(id)
-            const links = comment.links.filter(nodeId => nodeId !== id)
-
-            comment.linkTo(contains
-              ? [...links, id]
-              : links)
-          })
-
-        dragging.stop(id)
-      }
       return context
     })
-    this.editor.addPipe(context => {
-      if (context.type === 'noderemoved') {
-        const { id } = context.data
+    this.editor.addPipe(async context => {
+      if (context.type === 'noderemoved') await sync.cleanupOnNodeRemoved(context.data.id)
 
-        dragging.stop(id)
-
-        Array.from(this.comments.values()).forEach(comment => {
-          if (comment instanceof InlineComment && comment.linkedTo(id)) {
-            comment.linkTo([])
-          }
-          if (comment instanceof FrameComment && comment.linkedTo(id)) {
-            comment.linkTo(comment.links.filter(linkId => linkId !== id))
-          }
-        })
-      }
       return context
     })
   }
@@ -191,41 +125,11 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     }
   }
 
-  private createInlineHandlers() {
+  private handlerDeps() {
     return {
-      contextMenu: ({ id }: InlineComment) => void this.editComment(id),
-      pick: (item: InlineComment) => {
-        this.area.area.content.reorder(item.element, null)
-        void this.emit({ type: 'commentselected', data: item })
-      },
-      translate: async ({ id }: InlineComment, dx: number, dy: number, sources?: NodeId[]) => {
-        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
-      },
-      dragged: async (item: InlineComment, previous: Position, prev: string[], next: string[]) => {
-        await this.emit({
-          type: 'commentdragged',
-          data: { id: item.id, previous, links: { prev, next } }
-        })
-      }
-    }
-  }
-
-  private createFrameHandlers() {
-    return {
-      contextMenu: ({ id }: FrameComment) => void this.editComment(id),
-      pick: (item: FrameComment) => {
-        this.area.area.content.reorder(item.element, this.area.area.content.holder.firstChild)
-        void this.emit({ type: 'commentselected', data: item })
-      },
-      translate: async ({ id }: FrameComment, dx: number, dy: number, sources?: NodeId[]) => {
-        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
-      },
-      dragged: async (item: FrameComment, previous: Position, prev: string[], next: string[]) => {
-        await this.emit({
-          type: 'commentdragged',
-          data: { id: item.id, previous, links: { prev, next } }
-        })
-      }
+      area: this.area,
+      emit: (signal: Produces) => this.emit(signal),
+      editComment: (id: string) => this.editComment(id)
     }
   }
 
@@ -233,18 +137,9 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * Restores a comment from serialized state (e.g. undo after delete)
    */
   // eslint-disable-next-line max-statements
-  public restoreComment(data: {
-    id: string
-    text: string
-    x: number
-    y: number
-    width: number
-    height: number
-    links: string[]
-    kind: 'inline' | 'frame'
-  }): Comment {
+  public restoreComment(data: CommentRestoreData): Comment {
     if (data.kind === 'inline') {
-      const comment = new InlineComment(data.text, this.area, this.createInlineHandlers(), { id: data.id })
+      const comment = new InlineComment(data.text, this.area, createInlineHandlers(this.handlerDeps()), { id: data.id })
 
       comment.x = data.x
       comment.y = data.y
@@ -256,7 +151,13 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
       return comment
     }
 
-    const comment = new FrameComment(data.text, this.area, this.editor, this.createFrameHandlers(), { id: data.id })
+    const comment = new FrameComment(
+      data.text,
+      this.area,
+      this.editor,
+      createFrameHandlers(this.handlerDeps()),
+      { id: data.id }
+    )
 
     comment.x = data.x
     comment.y = data.y
@@ -279,7 +180,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * @returns comment that was created
    */
   public addInline(text: string, [x, y]: [number, number], link?: string) {
-    const comment = new InlineComment(text, this.area, this.createInlineHandlers())
+    const comment = new InlineComment(text, this.area, createInlineHandlers(this.handlerDeps()))
 
     comment.x = x
     comment.y = y
@@ -298,7 +199,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * @returns comment that was created
    */
   public addFrame(text: string, links: string[] = []) {
-    const comment = new FrameComment(text, this.area, this.editor, this.createFrameHandlers())
+    const comment = new FrameComment(text, this.area, this.editor, createFrameHandlers(this.handlerDeps()))
 
     comment.linkTo(links)
 
@@ -330,6 +231,62 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     comment.destroy()
 
     void this.emit({ type: 'commentremoved', data: comment })
+  }
+
+  /**
+   * Updates comment links and resizes frame comments when needed
+   */
+  public async setCommentLinks(id: Comment['id'], links: string[]) {
+    const comment = this.comments.get(id)
+
+    if (!comment) return
+
+    comment.linkTo([...links])
+
+    if (comment instanceof FrameComment) {
+      await comment.resize()
+    }
+  }
+
+  /**
+   * Restores frame bounds and links without recalculating from linked nodes.
+   * Assigns `links` directly instead of `linkTo` to avoid an automatic resize.
+   */
+  public setFrameState(id: Comment['id'], state: FrameBounds & { links: string[] }) {
+    const comment = this.comments.get(id)
+
+    if (!(comment instanceof FrameComment)) return
+
+    comment.links = [...state.links]
+    comment.x = state.x
+    comment.y = state.y
+    comment.width = state.width
+    comment.height = state.height
+    comment.update()
+  }
+
+  /**
+   * Restores frame membership and node position without triggering auto-resize side effects
+   */
+  public async restoreNodeFrameMembership(data: {
+    frames: { id: Comment['id'], state: FrameBounds & { links: string[] } }[]
+    node?: { id: NodeId, position: Position }
+  }) {
+    this.membershipState.restoring = true
+
+    try {
+      for (const frame of data.frames) {
+        this.setFrameState(frame.id, frame.state)
+      }
+
+      if (data.node) {
+        const view = this.area.nodeViews.get(data.node.id)
+
+        if (view) await view.translate(data.node.position.x, data.node.position.y)
+      }
+    } finally {
+      this.membershipState.restoring = false
+    }
   }
 
   /**

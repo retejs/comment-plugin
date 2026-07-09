@@ -18,7 +18,11 @@ export class FrameComment extends Comment {
       contextMenu?: (comment: FrameComment) => void
       pick?: (comment: FrameComment) => void
       translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => Promise<void>
-      dragged?: (comment: FrameComment, previous: Position, prevLinks: string[], nextLinks: string[]) => Promise<void>
+      dragged?: (
+        comment: FrameComment,
+        previous: Position,
+        prevLinks: string[]
+      ) => Promise<void>
     },
     options?: { id?: string }
   ) {
@@ -33,8 +37,8 @@ export class FrameComment extends Comment {
         if (events?.translate) await events.translate(this, dx, dy, sources)
       },
       drag: () => 1,
-      dragged: async (previous, prevLinks, nextLinks) => {
-        if (events?.dragged) await events.dragged(this, previous, prevLinks, nextLinks)
+      dragged: async (previous, prevLinks) => {
+        if (events?.dragged) await events.dragged(this, previous, prevLinks)
       }
     }, options)
 

@@ -24,7 +24,10 @@ export class Comment {
       pick?: null | (() => void)
       translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => Promise<void>)
       drag?: null | (() => void)
-      dragged?: null | ((previous: Position, prevLinks: string[], nextLinks: string[]) => Promise<void>)
+      dragged?: null | ((
+        previous: Position,
+        prevLinks: string[]
+      ) => Promise<void>)
     },
     options?: { id?: string }
   ) {
@@ -131,6 +134,6 @@ export class Comment {
       this.events.drag()
     }
 
-    await this.events?.dragged?.(origin, prevLinks, [...this.links])
+    await this.events?.dragged?.(origin, prevLinks)
   }
 }
