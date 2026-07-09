@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/retejs/comment-plugin/compare/v2.1.2...v2.1.3) (2026-07-09)
+
+
+### Bug Fixes
+
+* allow dragging nodes out of frame comments ([0d29d2c](https://github.com/retejs/comment-plugin/commit/0d29d2cbe38c05fd6080f6fb370bdb19fbcfc180)), closes [#48](https://github.com/retejs/comment-plugin/issues/48)
+
 ## [2.1.2](https://github.com/retejs/comment-plugin/compare/v2.1.1...v2.1.2) (2025-09-01)
 
 

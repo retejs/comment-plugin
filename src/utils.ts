@@ -139,3 +139,19 @@ export function trackedTranslateComment<CommentType extends TranslatableComment>
     }
   }
 }
+
+export function trackDragging() {
+  const ids = new Set<NodeId>()
+
+  return {
+    start(id: NodeId) {
+      ids.add(id)
+    },
+    stop(id: NodeId) {
+      ids.delete(id)
+    },
+    isDragging(id: NodeId) {
+      return ids.has(id)
+    }
+  }
+}
