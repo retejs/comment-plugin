@@ -6,7 +6,7 @@ import { BaseArea, BaseAreaPlugin } from 'rete-area-plugin'
 import { Comment } from './comment'
 import { FrameComment } from './frame-comment'
 import { InlineComment } from './inline-comment'
-import type { ExpectedSchemes } from './types'
+import type { ExpectedSchemes, Position } from './types'
 import { trackedTranslate, trackedTranslateComment } from './utils'
 
 export { Comment, FrameComment, InlineComment }
@@ -21,9 +21,11 @@ export type Produces =
   | { type: 'commentcreated', data: Comment }
   | { type: 'commentremoved', data: Comment }
   | { type: 'editcomment', data: Comment }
+  | { type: 'commentedited', data: { comment: Comment, previousText: string } }
   | { type: 'commentselected', data: Comment }
   | { type: 'commentunselected', data: Comment }
   | { type: 'commenttranslated', data: { id: Comment['id'], dx: number, dy: number, sources?: NodeId[] } }
+  | { type: 'commentdragged', data: { id: Comment['id'], previous: Position, links: { prev: string[], next: string[] } } }
   | { type: 'commentlinktranslate', data: { id: Comment['id'], link: string } }
 
 /**
@@ -159,15 +161,102 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
     const comment = this.comments.get(id)
 
     if (!comment) throw new Error('comment not found')
+    const previousText = comment.text
     const newText = this.props?.edit
       ? await this.props.edit(comment)
       : prompt('Edit comment', comment.text)
 
     if (newText !== null) {
-      comment.text = newText
-      comment.update()
-      await comment.translate(0, 0)
+      if (newText !== previousText) {
+        comment.text = newText
+        comment.update()
+        void this.emit({ type: 'editcomment', data: comment })
+        void this.emit({ type: 'commentedited', data: { comment, previousText } })
+      }
+      if (comment instanceof FrameComment) {
+        void comment.resize()
+      } else {
+        comment.update()
+      }
     }
+  }
+
+  private createInlineHandlers() {
+    return {
+      contextMenu: ({ id }: InlineComment) => void this.editComment(id),
+      pick: (item: InlineComment) => {
+        this.area.area.content.reorder(item.element, null)
+        void this.emit({ type: 'commentselected', data: item })
+      },
+      translate: async ({ id }: InlineComment, dx: number, dy: number, sources?: NodeId[]) => {
+        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      },
+      dragged: async (item: InlineComment, previous: Position, prev: string[], next: string[]) => {
+        await this.emit({
+          type: 'commentdragged',
+          data: { id: item.id, previous, links: { prev, next } }
+        })
+      }
+    }
+  }
+
+  private createFrameHandlers() {
+    return {
+      contextMenu: ({ id }: FrameComment) => void this.editComment(id),
+      pick: (item: FrameComment) => {
+        this.area.area.content.reorder(item.element, this.area.area.content.holder.firstChild)
+        void this.emit({ type: 'commentselected', data: item })
+      },
+      translate: async ({ id }: FrameComment, dx: number, dy: number, sources?: NodeId[]) => {
+        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
+      },
+      dragged: async (item: FrameComment, previous: Position, prev: string[], next: string[]) => {
+        await this.emit({
+          type: 'commentdragged',
+          data: { id: item.id, previous, links: { prev, next } }
+        })
+      }
+    }
+  }
+
+  /**
+   * Restores a comment from serialized state (e.g. undo after delete)
+   */
+  // eslint-disable-next-line max-statements
+  public restoreComment(data: {
+    id: string
+    text: string
+    x: number
+    y: number
+    width: number
+    height: number
+    links: string[]
+    kind: 'inline' | 'frame'
+  }): Comment {
+    if (data.kind === 'inline') {
+      const comment = new InlineComment(data.text, this.area, this.createInlineHandlers(), { id: data.id })
+
+      comment.x = data.x
+      comment.y = data.y
+      comment.width = data.width
+      comment.height = data.height
+      comment.linkTo([...data.links])
+      this.add(comment)
+
+      return comment
+    }
+
+    const comment = new FrameComment(data.text, this.area, this.editor, this.createFrameHandlers(), { id: data.id })
+
+    comment.x = data.x
+    comment.y = data.y
+    comment.width = data.width
+    comment.height = data.height
+    comment.linkTo([...data.links])
+    this.add(comment)
+    this.area.area.content.reorder(comment.element, this.area.area.content.holder.firstChild)
+
+    return comment
   }
 
   /**
@@ -180,16 +269,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * @returns comment that was created
    */
   public addInline(text: string, [x, y]: [number, number], link?: string) {
-    const comment = new InlineComment(text, this.area, {
-      contextMenu: ({ id }) => void this.editComment(id),
-      pick: data => {
-        this.area.area.content.reorder(comment.element, null)
-        void this.emit({ type: 'commentselected', data })
-      },
-      translate: async ({ id }, dx, dy, sources) => {
-        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
-      }
-    })
+    const comment = new InlineComment(text, this.area, this.createInlineHandlers())
 
     comment.x = x
     comment.y = y
@@ -208,16 +288,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
    * @returns comment that was created
    */
   public addFrame(text: string, links: string[] = []) {
-    const comment = new FrameComment(text, this.area, this.editor, {
-      contextMenu: ({ id }) => void this.editComment(id),
-      pick: data => {
-        this.area.area.content.reorder(comment.element, this.area.area.content.holder.firstChild)
-        void this.emit({ type: 'commentselected', data })
-      },
-      translate: async ({ id }, dx, dy, sources) => {
-        await this.emit({ type: 'commenttranslated', data: { id, dx, dy, sources } })
-      }
-    })
+    const comment = new FrameComment(text, this.area, this.editor, this.createFrameHandlers())
 
     comment.linkTo(links)
 
@@ -262,7 +333,7 @@ export class CommentPlugin<Schemes extends ExpectedSchemes, K = BaseArea<Schemes
 
     if (!comment) return
 
-    void comment.translate(dx, dy)
+    return comment.translate(dx, dy)
   }
 
   /**

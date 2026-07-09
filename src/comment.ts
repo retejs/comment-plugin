@@ -14,6 +14,7 @@ export class Comment {
   element!: HTMLElement
   nested!: HTMLElement
   prevPosition: null | Position = null
+  private dragOrigin: null | Position = null
 
   constructor(
     public text: string,
@@ -23,9 +24,11 @@ export class Comment {
       pick?: null | (() => void)
       translate?: null | ((dx: number, dy: number, sources?: NodeId[]) => Promise<void>)
       drag?: null | (() => void)
-    }
+      dragged?: null | ((previous: Position, prevLinks: string[], nextLinks: string[]) => Promise<void>)
+    },
+    options?: { id?: string }
   ) {
-    this.id = getUID()
+    this.id = options?.id ?? getUID()
     this.element = document.createElement('div')
     this.nested = document.createElement('div')
     this.element.appendChild(this.nested)
@@ -41,6 +44,7 @@ export class Comment {
       },
       {
         start: () => {
+          this.dragOrigin = { x: this.x, y: this.y }
           this.prevPosition = { ...area.area.pointer }
 
           if (this.events?.pick) {
@@ -58,10 +62,7 @@ export class Comment {
           }
         },
         drag: () => {
-          this.prevPosition = null
-          if (this.events?.drag) {
-            this.events.drag()
-          }
+          void this.finishDrag()
         }
       }
     )
@@ -110,5 +111,26 @@ export class Comment {
 
   destroy() {
     this.dragHandler.destroy()
+  }
+
+  private async finishDrag() {
+    this.prevPosition = null
+
+    const origin = this.dragOrigin
+
+    this.dragOrigin = null
+
+    if (!origin) {
+      this.events?.drag?.()
+      return
+    }
+
+    const prevLinks = [...this.links]
+
+    if (this.events?.drag) {
+      this.events.drag()
+    }
+
+    await this.events?.dragged?.(origin, prevLinks, [...this.links])
   }
 }

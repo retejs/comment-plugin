@@ -2,7 +2,7 @@ import { NodeId } from 'rete'
 import { BaseAreaPlugin } from 'rete-area-plugin'
 
 import { Comment } from './comment'
-import { ExpectedSchemes } from './types'
+import { ExpectedSchemes, Position } from './types'
 import { intersectRect } from './utils'
 
 export class InlineComment extends Comment {
@@ -16,7 +16,9 @@ export class InlineComment extends Comment {
       contextMenu?: (comment: InlineComment) => void
       pick?: (comment: InlineComment) => void
       translate?: (comment: InlineComment, dx: number, dy: number, sources?: NodeId[]) => Promise<void>
-    }
+      dragged?: (comment: InlineComment, previous: Position, prevLinks: string[], nextLinks: string[]) => Promise<void>
+    },
+    options?: { id?: string }
   ) {
     super(text, area, {
       contextMenu: () => {
@@ -30,8 +32,11 @@ export class InlineComment extends Comment {
       },
       drag: () => {
         this.link()
+      },
+      dragged: async (previous, prevLinks, nextLinks) => {
+        if (events?.dragged) await events.dragged(this, previous, prevLinks, nextLinks)
       }
-    })
+    }, options)
 
     this.nested.className = 'inline-comment'
   }

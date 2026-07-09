@@ -2,7 +2,7 @@ import { NodeEditor, NodeId } from 'rete'
 import { BaseAreaPlugin } from 'rete-area-plugin'
 
 import { Comment } from './comment'
-import { ExpectedSchemes } from './types'
+import { ExpectedSchemes, Position } from './types'
 import { containsRect, intersectRect, nodesBBox, Rect } from './utils'
 
 export class FrameComment extends Comment {
@@ -18,7 +18,9 @@ export class FrameComment extends Comment {
       contextMenu?: (comment: FrameComment) => void
       pick?: (comment: FrameComment) => void
       translate?: (comment: FrameComment, dx: number, dy: number, sources?: NodeId[]) => Promise<void>
-    }
+      dragged?: (comment: FrameComment, previous: Position, prevLinks: string[], nextLinks: string[]) => Promise<void>
+    },
+    options?: { id?: string }
   ) {
     super(text, area, {
       contextMenu: () => {
@@ -30,8 +32,11 @@ export class FrameComment extends Comment {
       translate: async (dx, dy, sources) => {
         if (events?.translate) await events.translate(this, dx, dy, sources)
       },
-      drag: () => 1
-    })
+      drag: () => 1,
+      dragged: async (previous, prevLinks, nextLinks) => {
+        if (events?.dragged) await events.dragged(this, previous, prevLinks, nextLinks)
+      }
+    }, options)
 
     this.nested.className = 'frame-comment'
   }
