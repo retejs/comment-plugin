@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/retejs/comment-plugin/compare/v2.1.3...v2.2.0) (2026-07-10)
+
+
+### Features
+
+* **comments:** add history signals and restore api ([7a81fdb](https://github.com/retejs/comment-plugin/commit/7a81fdb10a29755987b5e572f87e16529c5a6561))
+
 ## [2.1.3](https://github.com/retejs/comment-plugin/compare/v2.1.2...v2.1.3) (2026-07-09)
 
 
